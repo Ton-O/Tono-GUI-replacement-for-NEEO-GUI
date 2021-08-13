@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+    <link rel="stylesheet" href="css/style.css" type="text/css"/> 
+    <title>NEEO-device</title>
+    <ul class="navigation" >
+        <li><h2 id="tod01"></h2></li>
+        <li> <Label>Refresh every</Label></li>
+        <li><input type="text" id="Refresh" name="Refresh" onchange="RefreshHandler('Device')"; required minlength="1" maxlength="2" size="2"></l>
+        <li> <Label>#Items</Label></li>    
+        <li><input type="text" id="Items" name="Items" onchange="ItemsHandler('Device')"; required minlength="1" maxlength="2" size="2"></l>
+        <li><button id="act99" onclick="ShowActHandler('Device');">Show active scenarios</button></li>
+        <li><button onclick="NavigateUp('Device')">Go Up</button></li>
+      </ul>
+    
+  </head>
+
+  <div id="ActFlex"></div>
+</head>
+<body>
+<p>
+  <div class="error" id="err01"><br></span></div>
+=============================================================================
+<br><br><br>
+<div id="Body01"></div>
+<p id="BodyTitle10"> </p>
+<div id="Body10"></div>
+<p id="BodyTitle11"> </p>
+<div id="Body11"></div>
+<p id="BodyTitle12"> </p>
+<div id="Body12"></div>
+<p id="BodyTitle13"> </p>
+<div id="Body13"></div>
+<p id="BodyTitle14"> </p>
+<div id="Body14"></div>
+<p id="BodyTitle15"> </p>
+<div id="Body15"></div>
+<p id="BodyTitle16"> </p>
+<div id="Body16"></div>
+<br><br>
+</p> 
+ <footer>
+<div id="LastChange"></div>
+</footer>
+<script type="text/javascript" src="Lib/index-browser-umd.cjs"></script>
+<script type="text/javascript" src="Lib/SubModules.js"></script>  
+<script data-main="app/DeviceAPP" src="Lib/require.js"></script>  
+
+
+<script >
+window.addEventListener( "pageshow", function ( event ) {
+var historyTraversal = event.persisted || (typeof window.performance != "undefined" && window.performance.getEntriesByType("navigation")[0].type === "back_forward" ) 
+if ( historyTraversal) {
+  window.location.reload();
+}
+});
+
+</script>
+
+</body>
+</html>

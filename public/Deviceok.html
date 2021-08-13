@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+    <link rel="stylesheet" href="css/style.css" type="text/css"/> 
+    <title>Dynamic Text in JavaScript</title>
+  </head>
+  <button onclick="history.go(-1)">Go back</button>
+
+  <script src="node_modules/jsonpath-plus/dist/index-browser-umd.cjs"></script>
+  <script src="Lib/SubModules.js"></script>  
+  <h1 id="heading1">Dynamic Text</h1>
+  Active Scenarios 
+  <div id="act01"></div>  
+</head>
+<body>
+<p>
+  <div id="err01"><span><br></span></div>
+<br>
+=============================================================================
+<br><br>
+<div id="id01"></div>
+<br><br>
+</p> 
+ <div class="NEEOimage"> 
+  <a href="https://hidden-brook-12046.herokuapp.com/" class="project1"> <img src="http://fc08.deviantart.net/fs71/f/2012/234/7/6/sample__50x50_blink_pony_icon_by_tripperwitch-d5c3pne.gif" alt=""> </a> 
+ </div> 
+ <div class="NEEOCapture"> 
+  <h1 class="NEEOCapture">Some Projects I Have Worked On</h1> 
+  <h2 class="description"></h2> 
+ </div> 
+
+ <footer>
+<div id="LastChange"></div>
+</footer>
+
+      <script>
+        function UpdateSlider(RoomKey,DeviceKey,ID,Type,value)
+      {
+        var xmlHttp =  new XMLHttpRequest();
+        var Updateurl=url+"/rooms/"+RoomKey+"/devices/"+DeviceKey+"/"+Type+"/"+ID;
+      //  var Updateurl=url+"/rooms/"+SensorEntry.RoomKey+"/devices/"+SensorEntry.DeviceKey+"/sensors/"+mySensorKey;
+        var mimeType = "application/json";  
+        xmlHttp.open('PUT', Updateurl, true);  // true : asynchrone false: synchrone
+        xmlHttp.setRequestHeader('Content-Type', mimeType);  
+        xmlHttp.send('{"value":'+value+'}'); 
+      }
+      
+      function UpdateSwitch(RoomKey,DeviceKey,ID,Type,value)
+      {
+        var xmlHttp =  new XMLHttpRequest();
+        var Updateurl=url+"/rooms/"+RoomKey+"/devices/"+DeviceKey+"/"+Type+"/"+ID+"/"+value;
+        var mimeType = "application/json";  
+        xmlHttp.open('PUT', Updateurl, false);  // true : asynchrone false: synchrone
+        xmlHttp.setRequestHeader('Content-Type', mimeType);  
+        xmlHttp.send(''); 
+        var Done=false;
+        var table = document.getElementById('td-all');
+          for (var r = 0, n = table.rows.length; r < n; r++) {
+              if (Done)
+                break;
+              for (var c = 0, m = table.rows[r].cells.length; c < m; c++) {
+                if (Done)
+                  break;
+                var MyTD = table.rows[r].innerHTML;
+                  if (MyTD.includes('id="'+ID)) {        //<========== here I check if the ID I want to change is in this row
+                    NewTD = MyTD; 
+                    if (value=='on') {
+                      NewTD = NewTD.replace("switch-off.jpg","switch-on.jpg") //<===== Here I toggle the switch from off to on
+                      NewTD = NewTD.replace("'switches','on')","'switches','off')")
+                    }
+                    else{
+                      NewTD = NewTD.replace("switch-on.jpg","switch-off.jpg")
+                      NewTD = NewTD.replace("'switches','off')","'switches','on')")
+                    }
+                    var tableHTML = document.getElementById('td-all').innerHTML; // <== Get the entire HTML so we can change  "in place"
+                    tableHTML = tableHTML.replace(MyTD,NewTD)                    // <== Change in place
+                    document.getElementById('td-all').innerHTML = tableHTML;     // and activate the "changed HTML"
+                    Done=true;
+                    break;
+                  }
+              }
+          }
+      }
+      
+      </script>
+      
+<script src="node_modules/jsonpath-plus/dist/index-browser-umd.cjs"></script>
+
+<script>
+const queryString = window.location.search;
+const urlParams = new URLSearchParams(queryString);
+const url = urlParams.get('url')
+const RoomKey = urlParams.get('roomkey')
+const RoomName = urlParams.get('roomname')
+const Scenario = urlParams.get('scenario')
+var RoomURL =url+"/rooms/"+RoomKey+'/'
+var Sensors = [];
+var Sensorsfound;
+
+
+var Action;
+
+var AllShortcuts = [];
+var Stage = "AllReceipes";
+var MyRoomName = ""; 
+var HTTPExec = new XMLHttpRequest();
+var ActiveScenariosURL= url+'/activescenariokeys';  
+var HTTPGetAllShortcuts = new XMLHttpRequest();
+var tdAllout = '<table id="td-all"  border = "1 class=center">'; 
+var tdActout = '<table border = "1">'; 
+
+window.addEventListener( "pageshow", function ( event ) {
+  var historyTraversal = event.persisted || (typeof window.performance != "undefined" && window.performance.getEntriesByType("navigation")[0].type === "back_forward" ) 
+  if ( historyTraversal) {
+    window.location.reload();
+  }
+}); 
+
+if (window.performance.getEntriesByType("navigation")[0].type == "navigate") {
+  Action = urlParams.get('execute')
+  if (Action!=""&&Action!=null) {  // Do we need to start the scenario?
+    let ExecURL=RoomURL+'recipes/'+ Action+'/execute';
+    HTTPExec.open("GET",  ExecURL, true);
+    HTTPExec.send();
+  }
+}
+var MyProject = ""; 
+var LastChange; 
+
+GetNeeoProject(Interpret_Project);    // This is the main engine: Get the latest project from NEEO and callback to Interpret_Project
+
+function Interpret_Project(MyProject)
+{
+  if (GetAllShortcuts(MyProject))
+    GetActScenario();
+
+  
+  let TheHeading =  'NEEO - device "'+ Scenario + '" room '+ RoomName;
+  document.title = TheHeading;
+  let heading1 = document.getElementById("heading1");
+  heading1.firstChild.nodeValue=TheHeading;
+}
+
+
+
+function GetSensorValue(Entry) {
+  var myPath;
+  var SensorEntry = Sensors[Entry];
+  if (SensorEntry.Type=="textlabel")
+    var myPath = "$.rooms."+SensorEntry.RoomName+".devices.['"+SensorEntry.DeviceName+"'].textlabels.['"+SensorEntry.ComponentName+"'].sensor.key";
+  else if (SensorEntry.Type=="slider")
+  var myPath = "$.rooms."+SensorEntry.RoomName+".devices.['"+SensorEntry.DeviceName+"'].sliders.['"+SensorEntry.ComponentName+"'].sensor.key";
+  else if (SensorEntry.Type=="directory") {
+  //var myPath = "$.rooms."+SensorEntry.RoomName+".devices.['"+SensorEntry.DeviceName+"'].directories.['"+SensorEntry.ComponentName+"'].sensor.key";
+  --Sensorsfound; // For now discard this type
+  return}
+  else if (SensorEntry.Type=="switch")
+  var myPath = "$.rooms."+SensorEntry.RoomName+".devices.['"+SensorEntry.DeviceName+"'].switches.['"+SensorEntry.ComponentName+"'].sensor.key";
+  else console.log("Unhandled type:",SensorEntry.Type)
+
+  var mySensorKey = JSONPath.JSONPath({path: myPath, json: MyProject});
+  
+
+  var SensorURL = url+"/rooms/"+SensorEntry.RoomKey+"/devices/"+SensorEntry.DeviceKey+"/sensors/"+mySensorKey+"?bb=0&Entry="+Entry;
+  var SensorHTTP = new XMLHttpRequest();
+  var SensorValue;
+  SensorHTTP.onreadystatechange = function() {
+    if (this.readyState == 4 ) {
+//      if (this.status == 200) {
+        SensorValue = JSON.parse(this.responseText);
+        const urlParams = new URLSearchParams(this.responseURL);
+        const MyEntry = urlParams.get('Entry')
+        Sensors[MyEntry].Value = SensorValue.value;
+        if (--Sensorsfound==0)
+          ProcessAllShortcuts();
+
+        //Interpret_Project(MyJSON,url);
+      }
+    };
+  SensorHTTP.open("GET", SensorURL, true);
+  SensorHTTP.send();
+}
+
+
+function GetAllShortcuts(Project) {
+  var i;
+  var myPath = "$.rooms."+RoomName+".scenarios."+Scenario+".*";
+  var myScenarios = JSONPath.JSONPath({path: "$.rooms."+RoomName+".scenarios.*", json: Project});
+  if (myScenarios.length == 0) {
+    console.log("Oops, room/scenario not found....., did we have a change?")
+    if (Project.ChangeDetected)
+      {ShowError("Scenario cannot be found.... probably deleted within NEEO-GUI?")
+      return false;
+      }
+    else
+      {ShowError("Scenario cannot be found.... cannot continue, please return to index of rooms and retry")
+      return false;
+    }
+  }
+  var MyIndex = myScenarios.findIndex((myname)=> {return Scenario == myname.name});
+  var myScenario = myScenarios[MyIndex];
+  var MyShortcutKey  = "";
+  var MyShortcutName = "";
+  var MyShortcutLabel = "";
+  var MyShortcutType = "";
+  var MyShortcutIcon = ""; 
+  var MyShortcutComponentKey = ""; 
+  var MyShortcutHidden = ""; 
+  var MyScenarioKey = ""; 
+  var MyDeviceKey = ""; 
+  var MyShortcutMainDevice = ""; 
+  var EntryToWrite = -1;
+  var myShortcuts = JSONPath.JSONPath({path: "$.shortcuts.*", json: myScenario});
+  Sensorsfound=0;
+  for (let j=0;j< myShortcuts.length;j++) {
+    MyShortcutType = myShortcuts[j].componentType;
+    if (MyShortcutType =="button" ||  MyShortcutType =="switch" || MyShortcutType =="directory" || MyShortcutType =="textlabel" ||MyShortcutType =="slider") {
+      AllShortcuts.push({"DeviceRoomKey": myShortcuts[j].deviceRoomKey,"DeviceKey":myShortcuts[j].deviceKey, "Key": myShortcuts[j].key, "ActionKey":myShortcuts[j].componentKey, "Name": myShortcuts[j].name,"Label": myShortcuts[j].componentLabel,"Type": myShortcuts[j].componentType,"Icon": "Icons/"+MyShortcutType+".jpg","Scenario": myShortcuts[j].scenarioKey,"Weight":myShortcuts[j].weight,"Device": myShortcuts[j].deviceKey});
+      if (MyShortcutType !="button"){ 
+        Sensors.push({"Key":myShortcuts[j].key,"Name":myShortcuts[j].name,"DeviceKey": myShortcuts[j].deviceKey,"DeviceName": myShortcuts[j].deviceName,"RoomKey": myShortcuts[j].deviceRoomKey,"RoomName": myShortcuts[j].deviceRoomName,"Type": myShortcuts[j].componentType,"ComponentKey": myShortcuts[j].componentKey,"ComponentName": myShortcuts[j].componentName,"Elementnr":Sensors.length})
+        Sensorsfound++;
+        GetSensorValue(Sensors.length-1)
+      }
+    }
+  }
+  if (Sensors.length==0)    // If we have no sensors, no need to wait till ProcessAllShortcuts is triggered is from there
+    ProcessAllShortcuts(Project) // 
+
+  return true;  
+}
+function ProcessAllShortcuts(Project) {
+  for (var Sensor = 0;Sensor<Sensors.length;Sensor++) {
+    console.log("Variable",Sensors[Sensor].Name,"->",Sensors[Sensor].Value)
+  //   Sensors[Sensor].Value = 50;
+  }
+//GET http://<Brain_IP>:3000/v1/projects/home/rooms/<Room_KEY>/devices/<Device_KEY>/favorites/3/trigger
+  AllShortcuts.sort((firstEl, secondEl) => { return firstEl.Weight > secondEl.Weight} ) //now sort them according to user-settings
+  for (var Entry=0;Entry <AllShortcuts.length;Entry++) 
+    if (AllShortcuts[Entry].Type == "button")
+      tdAllout += '<tr>  <td><img src="'+AllShortcuts[Entry].Icon+'"  width="80" height="80" class=center' + '  /></td> <td><a href="' + 'Execute.html?roomname=' + RoomName + '&roomkey='+ RoomKey + '&execute=' + AllShortcuts[Entry].ActionKey + '&device=' +AllShortcuts[Entry].Device + '&url=' + url+ '&actiontype=' + AllShortcuts[Entry].Type+'">' +  AllShortcuts[Entry].Label  +   '</a><br>'+"</td> </tr>"
+    else {
+      var Sensor = Sensors.findIndex((myname)=> {return  AllShortcuts[Entry].Key == myname.Key});
+      if (AllShortcuts[Entry].Type == "slider") 
+        tdAllout += '<tr>  <td><div class="slidecontainer"> <input type="range" min="1" max="100" value="'+  Sensors[Sensor].Value   +'" class="slider" id="' + AllShortcuts[Entry].Label +'" onchange="UpdateSlider('+"'"+AllShortcuts[Entry].DeviceRoomKey+"','"+AllShortcuts[Entry].DeviceKey  +"','"+AllShortcuts[Entry].ActionKey + "','sliders',this.value)" +'";></div> </a><br>'+'</td> <td><a>' + AllShortcuts[Entry].Label + "</a></td></tr>"
+      else       
+        if (AllShortcuts[Entry].Type == "textlabel") 
+          tdAllout += '<tr>  <td><img src="'+AllShortcuts[Entry].Icon+'"  width="80" height="80" class=center' + '  /></td>  <td><a> '+Sensors[Sensor].Name   +'</a><br>'+'</td> <td><a>' + Sensors[Sensor].Value + "</a></td></tr>"
+        else
+        if (AllShortcuts[Entry].Type == "switch"){ 
+          tdAllout += '<tr> <td>    <img src="'
+            if (Sensors[Sensor].Value)
+              tdAllout +='Icons/switch-on.jpg"  width="40" height="40" class=center"  onclick="UpdateSwitch('+"'"+AllShortcuts[Entry].DeviceRoomKey+"','"+AllShortcuts[Entry].DeviceKey  +"','"+AllShortcuts[Entry].ActionKey + "','switches','off')" +'" ><div id="'+AllShortcuts[Entry].ActionKey+'"> </td>  <td><a> '+Sensors[Sensor].Name + '</tr> </div>'
+            else
+            tdAllout +='Icons/switch-off.jpg"  width="40" height="40" class=center" onclick="UpdateSwitch('+"'"+AllShortcuts[Entry].DeviceRoomKey+"','"+AllShortcuts[Entry].DeviceKey  +"','"+AllShortcuts[Entry].ActionKey + "','switches','on')" +'" ><div id="'+AllShortcuts[Entry].ActionKey+'"> </td>  <td><a> '+Sensors[Sensor].Name + '</tr> </div>'
+        }
+        else
+          tdAllout += '<tr>  <td><img src="'+AllShortcuts[Entry].Icon+'"  width="40" height="40" class=center' + '  /></td> <td><a href="' + 'Execute.html?roomname=' + RoomName + '&roomkey='+ RoomKey + '&execute=' + AllShortcuts[Entry].ActionKey + '&device=' +AllShortcuts[Entry].Device + '&url=' + url+ '&actiontype=' + AllShortcuts[Entry].Type+'">' +  AllShortcuts[Entry].Label  +   '</a><br>'+"</td> </tr>"
+    }
+  tdAllout += "</table>"; 
+  document.getElementById("id01").innerHTML = tdAllout;  
+  let TheDate = new Date(LastChange);
+  document.getElementById("LastChange").innerHTML = "Last NEEO-change:"+ TheDate.toLocaleString();
+}
+</script>
+</body>
+</html>

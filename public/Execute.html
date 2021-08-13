@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+  </head>
+<body>
+
+  <h1 id="heading1">Dynamic Text</h1>
+  Active Scenario 
+  <div id="act01"></div>  
+ =======================================
+
+  
+
+
+<div id="id01"></div>
+
+<script src="node_modules/jsonpath-plus/dist/index-browser-umd.cjs"></script>
+
+<script>
+  var xmlhttp = new XMLHttpRequest();
+  const queryString = window.location.search;
+  const urlParams = new URLSearchParams(queryString);
+  const url = urlParams.get('url')
+  const RoomKey = urlParams.get('roomkey')
+  const RoomName = urlParams.get('roomname')
+  const Scenario = urlParams.get('scenario')
+  const Action = urlParams.get('execute')
+  const Poweroff = urlParams.get('poweroff')
+  const ActionType = urlParams.get('actiontype')
+  const DeviceKey = urlParams.get('device')
+
+  var MyRoomName = ""; 
+  var RoomURL;
+  var HTTPExec = new XMLHttpRequest();
+        
+
+
+HTTPExec.onreadystatechange = function() {
+  if (this.readyState == 4 ){  // Are we done? We don;t really care about the return-status
+    if (Poweroff=='true') 
+        setTimeout(function(){
+            window.history.back();  //Poweroff have been executed, return to previous page, but give NEEO some time to update its status
+           },2000);
+    else
+        window.history.back();  //commands have been executed, return and reload previous page
+  }
+}; 
+RoomURL = url+"/rooms/"+RoomKey+'/'
+var ShortcutsURL=RoomURL+'devices/'+DeviceKey+'/macros/'+ Action+'/trigger';
+
+/*
+if (Action!="") {
+    HTTPExec.open("GET",  ShortcutsURL, true);
+    HTTPExec.send();
+}*/
+    
+if (Poweroff=='true') {
+//    http://<Brain_IP>:3000/v1/projects/home/rooms/<Room_KEY>/scenarios/<Scenario_KEY>/poweroff
+
+    let ExecURL=RoomURL+'scenarios/'+ Scenario +'/poweroff';
+    HTTPExec.open("GET",  ExecURL, true);
+    HTTPExec.send();
+}
+else if (ActionType=='button') {
+    //http://<Brain_IP>:3000/v1/projects/home/rooms/<Room_KEY>/devices/<Device_KEY>/macros/<Macro_KEY>/trigger
+// file:///Users/Tono/Documents/NEEO-HTML/Execute.html?Room=6662305947471314944&execute=6821060976243113984&url=http://192.168.0.150:3000/v1/projects/home&actiontype=button    
+        HTTPExec.open("GET",  ShortcutsURL, true);
+        HTTPExec.send();    
+    }
+
+</script>
+</body>
+</html>

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  
+  <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+    <link rel="stylesheet" href="css/style.css" type="text/css"/> 
+  <ul class="navigation" >
+    <li> <Label>Refresh every</Label></li>
+    <li><input type="text" id="Refresh" name="Refresh" onchange="RefreshHandler('NEEO')"; required minlength="1" maxlength="2" size="2"></l>
+      <li> <Label>#Items</Label></li>    
+      <li><input type="text" id="Items" name="Items" onchange="ItemsHandler('NEEO')"; required minlength="1" maxlength="2" size="2"></l>
+      <li><button id="act99" onclick="ShowActHandler('NEEO');">active scenarios</button></li>
+  </ul>
+  <div id="ActFlex"></div>
+</head>
+<body>
+<p>
+  <div id="err01"><span><br></span></div>
+  <h2 id="tod01"></h2>
+=============================================================================
+<br><br><br>
+<div id="Body01"></div>
+<br><br>
+<div id="LastChange"></div>
+<button onclick=window.location.reload();>Reload project</button>
+</p>
+
+</body>
+<script type="text/javascript" src="Lib/index-browser-umd.cjs"></script>
+<script type="application/javascript" data-main="app/NEEOAPP" src="Lib/require.js"></script>  
+<script type="text/javascript" src="Lib/SubModules.js"></script>  
+
+</html>
