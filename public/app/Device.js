@@ -267,7 +267,7 @@ function FormatFavorites(RoomKey,Scenario) {
 function TranslateWidget(Name,Shortcut,Destination="Shortcut"){
   var Items = [];
   if (Name == "neeo.default.button-set.volume") 
-      Items = ["VOLUME UP", "VOLUME DOWN","<br>","MUTE TOGGLE"];
+      Items = ["VOLUME DOWN", "VOLUME UP","<br>","MUTE TOGGLE"];
   else
   if (Name == "neeo.default.button-set.controlpad") 
       Items = ["CURSOR LEFT","CURSOR UP","<br>","CURSOR RIGHT","CURSOR DOWN","<br>","CURSOR ENTER"];
