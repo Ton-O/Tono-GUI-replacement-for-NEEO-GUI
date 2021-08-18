@@ -276,6 +276,8 @@ function FormatFavorites(RoomKey,Scenario) {
         FavoOut+= '</div></div>'
         NrFavos++;          
     }
+
+  return FavoOut;
   
 }
   
@@ -440,8 +442,9 @@ var SlideLine = 0;
 }
 function FillSlides(Scenario,Slide,deviceType,SlideIndex) {
   document.getElementById("BodyTitle1"+SlideIndex).innerHTML = "Slide "+ MySlides[SlideIndex].Name
-  if (Slide.Name == "Favorites") 
+  if (Slide.Name == "Favorites") {
           document.getElementById("Body1"+SlideIndex).innerHTML =  FormatFavorites(RoomKey,UsedScenario);  
+        }
   else 
   if (Slide.Name == "Shortcuts")  // will be filled by call to GetAllShortcuts
     {ProcessAllShortcuts(MyProject);
