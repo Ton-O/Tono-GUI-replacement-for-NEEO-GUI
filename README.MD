@@ -23,3 +23,6 @@ This module needs the address of your Brain to work. Please start the dialog lik
 	http://<URL where you stored GUI>:5000/Index.html?url=<brain url>
 
 NOTE: I am NOT an HTML-guy, so be happy with this release or make it better yourself.. .THEN SHARE!
+	
+Known issues:
+	1) At this moment, directories are only shown and cannot be used to navigate or start movies
