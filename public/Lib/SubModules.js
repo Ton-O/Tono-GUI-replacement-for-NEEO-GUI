@@ -10,7 +10,7 @@ function MakeSureWeHaveTheLatestProject(MyFunc)
             if (this.status == 200) 
                 if (this.responseText!=MyProject.lastchange)    {    // Test here if LastChange has changed
                     console.log("Change in LastChange detected")
-                    LoadProject(MyFunc,false)                  // Yes, reload project-file, then interpret the project
+                    LoadProject(MyFunc,true)                  // Yes, reload project-file, then interpret the project
                 }
                 else {
                     LastChange = MyProject.lastchange;            // No, we can directly interpret the project
@@ -36,7 +36,7 @@ function LoadProject(MyFunc,ChangeDetected) {
             MyJSON = JSON.parse(this.responseText);
             MyProject=this.responseText;
             sessionStorage.setItem("NEEO-Project",this.responseText);
-            MyProject.ChangeDetected = ChangeDetected;
+            MyJSON.ChangeDetected = ChangeDetected;
             LastChange = MyJSON.lastchange;
             MyFunc(MyJSON);
         }
