@@ -18,5 +18,8 @@ Installation is rather simple and can be done in (at least) two ways:
    Navigate to the directory on your Brain (the top-level, where StartServer.js resides) and run node StartServer.js. 
    Now open your browser and navigate to the IP-address of your brain and connect over port 3000, opening Index.html like this: <IP-address Brain>:3000/Index.html.
    Thats it.
+	
+This module needs the address of your Brain to work. Please start the dialog like thios:
+	http://<URL where you stored GUI>:5000/Index.html?url=<brain url>
 
 NOTE: I am NOT an HTML-guy, so be happy with this release or make it better yourself.. .THEN SHARE!
