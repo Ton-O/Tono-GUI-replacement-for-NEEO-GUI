@@ -1,7 +1,5 @@
 'use strict';
 
-//const { findLimit } = require("async");
-//const subs = require('Lib/SubModules.js')
 const RefreshSensor = true;
 const CreateFullObject = false;
 var queryString = window.location.search;
@@ -284,7 +282,7 @@ function FormatFavorites(RoomKey,Scenario) {
 function TranslateWidget(Name,Shortcut,Destination="Shortcut"){
   var Items = [];
   if (Name == "neeo.default.button-set.volume") 
-      Items = ["VOLUME UP", "VOLUME DOWN","<br>","MUTE TOGGLE"];
+      Items = ["VOLUME DOWN", "VOLUME UP","<br>","MUTE TOGGLE"];
   else
   if (Name == "neeo.default.button-set.controlpad") 
       Items = ["CURSOR LEFT","CURSOR UP","<br>","CURSOR RIGHT","CURSOR DOWN","<br>","CURSOR ENTER"];
@@ -490,12 +488,8 @@ function GetContent(MyProject) {
     PerformInitials=false;
   }
 
-  let MyIndex = MySlides.findIndex((myname)=> {return "Shortcuts" == myname.Name});
-  if (MyIndex>-1||!MySlides.length) 
-    GetAllShortcuts(RoomName,UsedScenario);           // Do this one as last, it will automatically call ProcessAllShortcuts
-/*    document.getElementById("Body1"+SlideIndex).innerHTML =  ProcessAllShortcuts(MyProject);  
-*/
-return true
+  GetAllShortcuts(RoomName,UsedScenario);           // Do this one as last, it will automatically call ProcessAllShortcuts
+  return true
 }
   
 function DecideOnRefreshOrUpdate(Project) {
