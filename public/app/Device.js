@@ -512,7 +512,7 @@ function ProcessSensors(MyProject){
     if (AllShortcuts[j].HasSensor)
       {ShortcutOut="";
         AllShortcuts[j].BuildOutput(AllShortcuts[j],RefreshSensor)
-        document.getElementById(AllShortcuts[j].key).innerHTML = ShortcutOut;
+        document.getElementById(AllShortcuts[j].componentKey).innerHTML = ShortcutOut;
       }
 
 }
@@ -612,9 +612,9 @@ function OutputASwitch(Shortcut,UpdateSensor=false) {
     ShortcutOut+= '<div class="BodyRow vertical">' 
   }
   if (Shortcut.SensorValue)
-      ShortcutOut+= '<div  id="'+Shortcut.key+ '" class="BodyRow-item"> <img class="image1" height="40" width="40"  src="Icons/switch-on.jpg"  onclick="UpdateSwitch('+"'"+Shortcut.deviceRoomKey+"','"+Shortcut.deviceKey  +"','"+Shortcut.componentKey + "','switches','off')" +'" ></div>'
+      ShortcutOut+= '<div  id="'+Shortcut.componentKey+ '" class="BodyRow-item"> <img class="image1" height="40" width="40"  src="Icons/switch-on.jpg"  onclick="UpdateSwitch('+"'"+Shortcut.deviceRoomKey+"','"+Shortcut.deviceKey  +"','"+Shortcut.componentKey + "','switches','off')" +'" ></div>'
   else
-      ShortcutOut+= '<div  id="'+Shortcut.key+ '" class="BodyRow-item"> <img class="image1" height="40" width="40"  src="Icons/switch-off.jpg"  onclick="UpdateSwitch('+"'"+Shortcut.deviceRoomKey+"','"+Shortcut.deviceKey  +"','"+Shortcut.componentKey + "','switches','on')" +'" ></div>'
+      ShortcutOut+= '<div  id="'+Shortcut.componentKey+ '" class="BodyRow-item"> <img class="image1" height="40" width="40"  src="Icons/switch-off.jpg"  onclick="UpdateSwitch('+"'"+Shortcut.deviceRoomKey+"','"+Shortcut.deviceKey  +"','"+Shortcut.componentKey + "','switches','on')" +'" ></div>'
   if (!UpdateSensor) {
       ShortcutOut+= '<div class="BodyRow-item"><a href=""></a> '+Shortcut.componentLabel +'</div>'
       ShortcutOut+= '</div>'
@@ -626,7 +626,7 @@ function OutputASlider(Shortcut,UpdateSensor=false) {
   if (!UpdateSensor) {  
     ShortcutOut+= '<div class="BodyRow vertical">' 
   }
-  ShortcutOut+= '<div  id="'+Shortcut.key+ '" class="BodyRow-item"> <input type="range" min="1" max="100" value="'+  Shortcut.SensorValue   +'" class="slider"  onchange="UpdateSlider('+"'"+Shortcut.deviceRoomKey+"','"+Shortcut.deviceKey  +"','"+Shortcut.componentKey + "','sliders',this.value)" +'";></input></div>'   
+  ShortcutOut+= '<div  id="'+Shortcut.componentKey+ '" class="BodyRow-item"> <input type="range" min="1" max="100" value="'+  Shortcut.SensorValue   +'" class="slider"  onchange="UpdateSlider('+"'"+Shortcut.deviceRoomKey+"','"+Shortcut.deviceKey  +"','"+Shortcut.componentKey + "','sliders',this.value)" +'";></input></div>'   
   if (!UpdateSensor) {
     ShortcutOut+= '<div class="BodyRow-item"><a href=""></a> '+Shortcut.componentLabel +'</div>'
     ShortcutOut+= '</div>'
@@ -659,7 +659,7 @@ function OutputATextlabel(Shortcut,UpdateSensor=false) {
     ShortcutOut+= '<div class="BodyRow vertical-textlabel">' 
     ShortcutOut+= '<div class="BodyRow-item"><a href=""></a>'+Shortcut.name   +'</div>'
   }
-  ShortcutOut+= '<div  id="'+Shortcut.key+ '"  class="BodyRow-item">'+Shortcut.SensorValue +'</div>';
+  ShortcutOut+= '<div  id="'+Shortcut.componentKey+ '"  class="BodyRow-item">'+Shortcut.SensorValue +'</div>';
   if (!UpdateSensor) {
     ShortcutOut+= '</div>'
   }
