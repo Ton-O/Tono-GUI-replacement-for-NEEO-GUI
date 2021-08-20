@@ -24,6 +24,7 @@ var Action;
 var UsedScenario;
 var MySettings;
 var AllShortcuts = [];
+var ShortcutSlideFound=false;
 var MyFavorites = {}
 var MySlides = [];
 var AllShortcuts = [];
@@ -420,6 +421,10 @@ var SlideLine = 0;
     {document.getElementById("BodyTitle1"+i).innerHTML = ""
     document.getElementById("Body1"+i).innerHTML =  "";
     }  
+
+    if (!ShortcutSlideFound)
+    MySlides.push({"Name":"Shortcuts","Weight":0,"Widget":[]});  // Make sure we show shortcuts; still unclear why there's not always a slide for them.
+
   for (var SlideIndex = 0;SlideIndex<MySlides.length;SlideIndex++) 
     FillSlides(Scenario,MySlides[SlideIndex],"",SlideIndex);
 
@@ -446,6 +451,7 @@ function FillSlides(Scenario,Slide,deviceType,SlideIndex) {
   else 
   if (Slide.Name == "Shortcuts")  // will be filled by call to GetAllShortcuts
     {ProcessAllShortcuts(MyProject);
+    ShortcutSlideFound=true;
     document.getElementById("Body1"+SlideIndex++).innerHTML =  ShortcutOut;
   }
   else 
