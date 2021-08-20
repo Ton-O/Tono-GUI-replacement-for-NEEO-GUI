@@ -68,7 +68,13 @@ function LoadCookies(Device)
 
 function  HandleParams(){
   if (url==''||url==null)
-    url = "http://192.168.0.150:3000/v1/projects/home";
+    if (window.location.hostname != "")
+      url = "http://"+ window.location.hostname + ":3000/v1/projects/home";
+    else {
+      url='http://192.168.0.150:3000/v1/projects/home'
+      ShowError("Please add ?url=xxx.xx.xx.xxx to the url to specify your brain, default 192.168.0.150 assumed");
+    }
+
   else
     if (!url.includes('/')&&url.substring(0,4).toUpperCase()!="HTTP")
       url='http://'+url+":3000/v1/projects/home"
