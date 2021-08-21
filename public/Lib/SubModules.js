@@ -127,8 +127,6 @@ function ParseScenario(ActiveRCP,url,Project)
             FlexOut+= '<article class="ACTScen-ScenName">   <a href="Device.html?roomname=' + Scenarios[SCN].roomName +  '&roomkey=' + Scenarios[SCN].roomKey + '&url=' + url+'&scenario=' + Scenarios[SCN].name +'">' + Scenarios[SCN].name  +'</a></article>'   
             FlexOut+= '<aside class="ACTScen-RoomName">'+ Scenarios[SCN].roomName  +'</aside>'
             FlexOut+= '<article class="ACTScen-PowerOff"> <a onclick="HandleACTClick('+"'poweroff'"+ ",'" +   Scenarios[SCN].roomKey + "','','" +  Scenarios[SCN].key +"','"  + url+"')"+ '"><img class="image1" height="40" width="40"   src="Icons/POWEROFF.jpg"   width="40" height="40"></a></article>'
-//            FlexOut+= '<article class="ACTScen-PowerOff"> <a href="' + 'Execute.html?poweroff=true&roomkey=' + Scenarios[SCN].roomKey +  '&roomname=' + Scenarios[SCN].roomName + '&scenario=' + Scenarios[SCN].key  + '&poweroff=true' + '&url=' + url+'"><img class="image1" height="40" width="40"   src="Icons/POWEROFF.jpg"   width="40" height="40"></a></article>'
-//onclick="HandleClick('+"'button','"+Shortcut.deviceRoomKey+"','"+Shortcut.deviceKey+"','"+ Shortcut.componentKey+"','"
         }
         if (Found == ActiveRCP.length)
             break;
@@ -136,8 +134,6 @@ function ParseScenario(ActiveRCP,url,Project)
     }
        
     document.getElementById("ActFlex").innerHTML = FlexOut;  
-/*    ActiveTable += "</table>"; 
-    document.getElementById("act01").innerHTML = ActiveTable;*/
   }
 
 function GetNeeoProject(MyFunc) {

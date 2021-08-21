@@ -509,6 +509,7 @@ function RefreshShortcuts() {
     AllShortcuts[j].Ready=false;
 
   GetSensorValues(ProcessSensors);
+  GetActScenario();  
 }
 
 function ProcessSensors(MyProject){

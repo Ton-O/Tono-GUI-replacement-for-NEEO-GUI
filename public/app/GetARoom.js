@@ -41,6 +41,7 @@ function GetAllRecipes() {
   var MyRecipeType = "";
   var MyRecipeIcon = ""; 
   var MyRecipeHidden = ""; 
+  var MyRecipeEnabled = ""; 
   var MyScenarioKey = ""; 
   var MyRecipeMainDevice = ""; 
   var EntryToWrite = -1;
@@ -55,27 +56,21 @@ function GetAllRecipes() {
     MyRecipeWeight = myrecp[j].weight;
     MyScenarioKey = myrecp[j].scenarioKey;
     MyRecipeHidden = myrecp[j].isHiddenRecipe;
+    MyRecipeEnabled = myrecp[j].enabled;
     MyRecipeMainDevice = myrecp[j].mainDeviceType;
-    let RecipeIndex = AllRecipes.findIndex((myname)=> {return MyRecipeName == myname.Name});
-    if (RecipeIndex<0) { //DeviceName is not yet in array
-      if (MyRecipeHidden==false) {
-        if (MyRecipeIcon =="default" )
-            MyRecipeIcon="Icons/"+MyRecipeMainDevice+".jpg"
-        else
-            MyRecipeIcon="Icons/"+"Special.jpg"
-        if (MyRecipeType=="launch")
-            AllRecipes.push({"launch": MyRecipeKey, "Name": MyRecipeName,"Type": MyRecipeType,"Icon": MyRecipeIcon,"Scenario": MyScenarioKey,"Weight":MyRecipeWeight});
-        else
-            AllRecipes.push({"poweroff": MyRecipeKey, "Name": MyRecipeName,"Type": MyRecipeType,"Icon": MyRecipeIcon,"Scenario": MyScenarioKey});
-
-            EntryToWrite = AllRecipes.length -1; 
-      }
-    }
-    else {  // DeviceName is already in array
-      if (MyRecipeType=="launch")
-          AllRecipes[RecipeIndex].launch = MyRecipeKey;
-      else
-          AllRecipes[RecipeIndex].poweroff = MyRecipeKey;
+    if (MyRecipeHidden==false&&MyRecipeEnabled!=false)
+        if (MyRecipeType=="launch") {
+          if (MyRecipeIcon =="default" )
+              MyRecipeIcon="Icons/"+MyRecipeMainDevice+".jpg"
+          else 
+              MyRecipeIcon="Icons/"+"Special.jpg"
+          AllRecipes.push({"launch": MyRecipeKey, "Name": MyRecipeName,"Type": MyRecipeType,"Icon": MyRecipeIcon,"Scenario": MyScenarioKey,"Weight":MyRecipeWeight});
+          EntryToWrite = AllRecipes.length -1; 
+          }
+        else {
+          let RecipeIndex = AllRecipes.findIndex((myname)=> {return MyRecipeName == myname.Name});
+          if (RecipeIndex>=0)  //DeviceName is in array
+                AllRecipes[RecipeIndex].poweroff = MyRecipeKey;
     
       }        
     }
