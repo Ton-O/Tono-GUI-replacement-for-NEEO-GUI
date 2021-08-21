@@ -57,26 +57,30 @@ function GetAllRecipes(Project) {
     MyScenarioKey = myrecp[j].scenarioKey;
     MyRecipeHidden = myrecp[j].isHiddenRecipe;
     MyRecipeMainDevice = myrecp[j].mainDeviceType;
-    if (MyRecipeHidden==false && MyRecipeType=="launch") {
-      let RecipeIndex = AllRecipes.findIndex((myname)=> {return MyRecipeName == myname.Name});
-      if (RecipeIndex<0) { //DeviceName is not yet in array
+    let RecipeIndex = AllRecipes.findIndex((myname)=> {return MyRecipeName == myname.Name});
+    if (RecipeIndex<0) { //DeviceName is not yet in array
+      if (MyRecipeHidden==false) {
         if (MyRecipeIcon =="default" )
             MyRecipeIcon="Icons/"+MyRecipeMainDevice+".jpg"
-        else 
-            MyRecipeIcon="Icons/"+"Special.jpg"
-        AllRecipes.push({"launch": MyRecipeKey, "Name": MyRecipeName,"Type": MyRecipeType,"Icon": MyRecipeIcon,"Scenario": MyScenarioKey,"Weight":MyRecipeWeight});
-        EntryToWrite = AllRecipes.length -1; 
-      }
-      else   // DeviceName is already in array
-        if (MyRecipeType=="launch")
-            AllRecipes[RecipeIndex].launch = MyRecipeKey;
         else
-            AllRecipes[RecipeIndex].poweroff = MyRecipeKey;
-    
-              
+            MyRecipeIcon="Icons/"+"Special.jpg"
+        if (MyRecipeType=="launch")
+            AllRecipes.push({"launch": MyRecipeKey, "Name": MyRecipeName,"Type": MyRecipeType,"Icon": MyRecipeIcon,"Scenario": MyScenarioKey,"Weight":MyRecipeWeight});
+        else
+            AllRecipes.push({"poweroff": MyRecipeKey, "Name": MyRecipeName,"Type": MyRecipeType,"Icon": MyRecipeIcon,"Scenario": MyScenarioKey});
+
+            EntryToWrite = AllRecipes.length -1; 
+      }
     }
-  }
-  AllRecipes.sort((firstEl, secondEl) => {  return  secondEl.Weight - firstEl.Weight } )
+    else {  // DeviceName is already in array
+      if (MyRecipeType=="launch")
+          AllRecipes[RecipeIndex].launch = MyRecipeKey;
+      else
+          AllRecipes[RecipeIndex].poweroff = MyRecipeKey;
+    
+      }        
+    }
+  AllRecipes.sort((firstEl, secondEl) => { return firstEl.Weight > secondEl.Weight} )
   var NrItems = 0;
   var DirEntryOut = "";
   DirEntryOut = '<div> <div class="LargeRow horizontal">' 

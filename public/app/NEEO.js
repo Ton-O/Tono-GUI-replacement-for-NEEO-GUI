@@ -74,7 +74,6 @@ function  HandleParams(){
       url='http://192.168.0.150:3000/v1/projects/home'
       ShowError("Please add ?url=xxx.xx.xx.xxx to the url to specify your brain, default 192.168.0.150 assumed");
     }
-
   else
     if (!url.includes('/')&&url.substring(0,4).toUpperCase()!="HTTP")
       url='http://'+url+":3000/v1/projects/home"

@@ -27,6 +27,7 @@ var AllShortcuts = [];
 var ShortcutSlideFound=false;
 var MyFavorites = {}
 var MySlides = [];
+var SlidesMaintainedByUser=false; 
 var AllShortcuts = [];
 var MyDirectories = [];
 
@@ -368,9 +369,10 @@ function GetSlides(RoomName,UsedScenario) { volumeDeviceKey
   var TempShortcut = {"key":MainDevice,"deviceRoomName":UsedScenario.roomName,"deviceRoomKey":UsedScenario.roomKey,"deviceKey":MainDevice,"deviceName":MyDevices[MainDevice]}
   var SlideNames = Object.keys(UsedScenario.slides) //.forEach(function(key) {
   var Destination = "Slide"
-
+  var MeAdded = 0;
   if (volumeDeviceKey!=undefined&&volumeDeviceKey!=null) {
     MySlides.push({"Name":"Volume","Weight":-1,"Widget":[]});
+    MeAdded++;
     let VolShortcut = {"key":MainDevice,"deviceRoomName":UsedScenario.roomName,"deviceRoomKey":UsedScenario.roomKey,"deviceKey":volumeDeviceKey,"deviceName":MyDevices[volumeDeviceKey]}
 
     MySlides[0].Widget[0] = TranslateWidget("neeo.default.button-set.volume",VolShortcut,Destination);
@@ -402,13 +404,19 @@ function GetSlides(RoomName,UsedScenario) { volumeDeviceKey
             MySlides[MySlides.length-1].Widget[0] =  TranslateWidget("neeo.default.button-set.controlpad",TempShortcut,Destination)
           }
           else
-          if (SlideNames[i]=="neeo.slide.shortcuts")
+          if (SlideNames[i]=="neeo.slide.shortcuts") {
+            ShortcutSlideFound=true;
             MySlides.push({"Name":"Shortcuts","Weight":Weight[i],"Widget":[]});
+          }
           else
               ShowError("Unknown slide: " + SlideNames[i])
 
       }
   }
+
+  if (SlideNames.length!=0&&MySlides.length==MeAdded)         // User has manually suppressed slides, don't guess, just follow what he defined
+    SlidesMaintainedByUser=true; 
+
   return MySlides
 }
 
@@ -422,23 +430,14 @@ var SlideLine = 0;
     document.getElementById("Body1"+i).innerHTML =  "";
     }  
 
-    if (!ShortcutSlideFound)
+    if (!ShortcutSlideFound&&!SlidesMaintainedByUser) {
     MySlides.push({"Name":"Shortcuts","Weight":0,"Widget":[]});  // Make sure we show shortcuts; still unclear why there's not always a slide for them.
+    ShortcutSlideFound=true;
+    }
 
   for (var SlideIndex = 0;SlideIndex<MySlides.length;SlideIndex++) 
     FillSlides(Scenario,MySlides[SlideIndex],"",SlideIndex);
 
-/*
-  for (var SlideIndex = 0;SlideIndex<MySlides.length;SlideIndex++) 
-    {document.getElementById("BodyTitle1"+SlideLine).innerHTML = "Slide "+ MySlides[SlideIndex].Name
-      if (MySlides[SlideIndex].Name == "Favorites") 
-          document.getElementById("Body1"+SlideLine++).innerHTML =  FavoOut;  
-      else
-      if (MySlides[SlideIndex].Name == "Shortcuts") {
-          ProcessAllShortcuts(MyProject);
-          document.getElementById("Body1"+SlideLine++).innerHTML =  ShortcutOut;
-      }
-  }*/
   let TheDate = new Date(LastChange);
   document.getElementById("LastChange").innerHTML = "Last NEEO-change:"+ TheDate.toLocaleString();
 
@@ -451,7 +450,6 @@ function FillSlides(Scenario,Slide,deviceType,SlideIndex) {
   else 
   if (Slide.Name == "Shortcuts")  // will be filled by call to GetAllShortcuts
     {ProcessAllShortcuts(MyProject);
-    ShortcutSlideFound=true;
     document.getElementById("Body1"+SlideIndex++).innerHTML =  ShortcutOut;
   }
   else 
@@ -713,9 +711,15 @@ function CreateWidget(Shortcut) {
     return MyShortcutOut;
 }
 
+function ReInit(){ 
+  AllShortcuts=[];  
+  SlidesMaintainedByUser=false;
+  ShortcutSlideFound=false;
+}
+
 function Interpret_Project(Project)
 {MyProject = Project;
-  AllShortcuts=[];  
+  ReInit();
   if (GetContent(MyProject)) {  // Load NEEO-project and search current scenario in it.
       GetActScenario();         // Skip if load or search went wrong
   }

@@ -138,7 +138,7 @@ function NavigateUp(CurrPage,) {
         window.location.href='GetARoom.html?roomname='+RoomName+'&roomkey='+RoomKey+'&url='+url
     else
     if (CurrPage == "GetARoom") 
-        window.location.href='Index.html?'+'&url='+url
+        window.location.href='index.html?'+'&url='+url
     else
     if (CurrPage == "Directory")  {
         const queryString = window.location.search;
