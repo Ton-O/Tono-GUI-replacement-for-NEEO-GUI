@@ -1,23 +1,46 @@
-var ActiveMessage = false;
+var ActiveMessage = [];
 var MsgTimeout = 0;
-function ShowError(MyError,Duration=45000) {
+var MyLoop = 0;
+const MaxMessages=10;
+function ShowError(MyError,Duration=10000) {
     var TheMessage = MyError;
-    if (ActiveMessage)   {       // Already showing a message, add it and clear timer
-        TheMessage = document.getElementById("err01").innerHTML + CRLF + MyError;
-        if (MsgTimeout) {
-            clearTimeout(MsgTimeout);
-            ActiveMessage="";
-            MsgTimeout=0;
+    if (ActiveMessage.length)   {       // Already showing a message, add it and clear timer
+        for ( MyLoop=0;MyLoop<ActiveMessage.length;MyLoop++) {
+            if (ActiveMessage[MyLoop].message==MyError) {
+                ActiveMessage[MyLoop].count++;
+                clearTimeout(ActiveMessage[MyLoop].MsgTimeout);                       // clear counter that will clear the message
+                ActiveMessage[MyLoop].MsgTimeout = setTimeout(function(MyMsg) {
+                    MyLoop = ActiveMessage.findIndex((myname)=> {return MyMsg == myname.message});
+                    ActiveMessage.splice(MyLoop,1);              //and remove the old entry;
+                    SHowMessages()
+                },Duration,MyError);// and set it to start again.
+                break;
+            }
         }
     }
-    document.getElementById("err01").innerHTML =  '<span class="blinking"> '+  TheMessage + '</span> <br>';
-    if (Duration!="infinite")
-        setTimeout(function()
-            {document.getElementById("err01").innerHTML =  '';
-            ActiveMessage="";
-            MsgTimeout=0;
-        },Duration);
+    if (MyLoop >= ActiveMessage.length)
+        {ActiveMessage.push({count:1,message:MyError,TimeOut:Duration})          
+        MyLoop=ActiveMessage.length-1;
+        ActiveMessage[MyLoop].MsgTimeout = setTimeout(function(MyMsg) {
+            MyLoop = ActiveMessage.findIndex((myname)=> {return MyMsg == myname.message});
+            ActiveMessage.splice(MyLoop,1);              //and remove the old entry;
+            SHowMessages()
+        },Duration,MyError);// and set it to start again.
+    }
+    
+    SHowMessages();
+}
 
+function SHowMessages(){
+    var CurrMessage = '<span class="blinking">' 
+    for ( var MyLoop=0;MyLoop<ActiveMessage.length;MyLoop++) {
+        if (ActiveMessage[MyLoop].count==1)
+            CurrMessage += ActiveMessage[MyLoop].message + "<br>"
+        else
+            CurrMessage += ActiveMessage[MyLoop].message + " ("+ ActiveMessage[MyLoop].count+")<br>"
+    }
+    CurrMessage += '</span> <br>';
+    document.getElementById("err01").innerHTML =  CurrMessage
 
 }
 
