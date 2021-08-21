@@ -20,13 +20,15 @@ function HandleClick(RoomKey,RoomName)
 }
 
 function Interpret_Project(Project) {
-
-  GetActScenario()
+MyProject=Project;
   GetAllRooms()
+  GetActScenario()
+
 }
 
 function  GetAllRooms() {
   var Rooms = JSONPath.JSONPath({path: "$.rooms.*", json: MyProject});
+  Rooms.sort((firstEl, secondEl) => { return   firstEl.weight - secondEl.weight });
   var NrItems = MySettings.ItemsPerLine;
   var Out =  '<div>';
 //  Out += '</div><div class="LargeRow horizontal">'

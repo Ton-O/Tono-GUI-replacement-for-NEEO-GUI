@@ -1,5 +1,24 @@
-function ShowError(MyError) {
-    document.getElementById("err01").innerHTML =  '<span class="blinking"> '+  MyError + '</span> <br>';
+var ActiveMessage = false;
+var MsgTimeout = 0;
+function ShowError(MyError,Duration=45000) {
+    var TheMessage = MyError;
+    if (ActiveMessage)   {       // Already showing a message, add it and clear timer
+        TheMessage = document.getElementById("err01").innerHTML + CRLF + MyError;
+        if (MsgTimeout) {
+            clearTimeout(MsgTimeout);
+            ActiveMessage="";
+            MsgTimeout=0;
+        }
+    }
+    document.getElementById("err01").innerHTML =  '<span class="blinking"> '+  TheMessage + '</span> <br>';
+    if (Duration!="infinite")
+        setTimeout(function()
+            {document.getElementById("err01").innerHTML =  '';
+            ActiveMessage="";
+            MsgTimeout=0;
+        },Duration);
+
+
 }
 
 function MakeSureWeHaveTheLatestProject(MyFunc)
@@ -187,15 +206,15 @@ function RefreshHandler(CurrPage) {
     MySettings.Refresh = Refresh.value;
     UpdateNow();
     PutBrowserSettings(CurrPage,JSON.stringify(MySettings))
-   }
+}
 
-   window.onload=function() {
-    window.setInterval(function() {
-      document.getElementById("tod01").innerHTML = TheHeading + ' ' + new Date().toLocaleTimeString('en-US', { hour12: false});
-      if (MySettings.Refresh&&!--TillRefresh) { // page-interval is se to every second, wait till x seconds have passed
-          TillRefresh=MySettings.Refresh;
-          UpdateNow();
-      }
+window.onload=function() {
+window.setInterval(function() {
+    document.getElementById("tod01").innerHTML = TheHeading + ' ' + new Date().toLocaleTimeString('en-US', { hour12: false});
+    if (MySettings.Refresh&&!--TillRefresh) { // page-interval is se to every second, wait till x seconds have passed
+        TillRefresh=MySettings.Refresh;
+        UpdateNow();
+    }
     },1000)
-  }
+}
  

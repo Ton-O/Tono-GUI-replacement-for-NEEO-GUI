@@ -28,15 +28,14 @@ function  HandleParams(){
   RoomURL =url+"/rooms/"+RoomKey+'/'
 }
 
-function Interpret_Project(MyProject)
-{
-  GetAllRecipes(MyProject);
+function Interpret_Project(Project)
+{MyProject=Project;
+  GetAllRecipes();
   GetActScenario()
 }
 
-function GetAllRecipes(Project) {
-  var i;
-  var myrecp = JSONPath.JSONPath({path: "$.rooms."+RoomName+".recipes.*", json: Project});
+function GetAllRecipes() {
+  var myrecp = JSONPath.JSONPath({path: "$.rooms."+RoomName+".recipes.*", json: MyProject});
   var MyRecipeKey  = "";
   var MyRecipeName = "";
   var MyRecipeType = "";
@@ -80,7 +79,7 @@ function GetAllRecipes(Project) {
     
       }        
     }
-  AllRecipes.sort((firstEl, secondEl) => { return firstEl.Weight > secondEl.Weight} )
+  AllRecipes.sort((firstEl, secondEl) => { return   secondEl.Weight - firstEl.Weight} )
   var NrItems = 0;
   var DirEntryOut = "";
   DirEntryOut = '<div> <div class="LargeRow horizontal">' 

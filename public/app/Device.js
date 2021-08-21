@@ -135,7 +135,7 @@ function GetSensorValues(MyCB) {
       }
       catch (err) {console.log("error in storing result",err,urlParams)}
       if (this.status != 200) {
-            ShowError("sensor-get failed:",this.responseURL,this.status)
+            ShowError("sensor-get failed:" + this.responseURL +" " +this.status)
           }
       else {
           ResponseValue = JSON.parse(this.responseText);
@@ -183,7 +183,7 @@ function GetSensorValue(Entry) {
         }
         catch (err) {console.log("error in storing result",err,urlParams)}
         if (this.status != 200) {
-              ShowError("sensor-get failed:",this.responseURL,this.status)
+              ShowError("sensor-get failed: " + this.responseURL + " " + this.status)
             }
         else {
             ResponseValue = JSON.parse(this.responseText);
