@@ -1,46 +1,14 @@
-var ActiveMessage = [];
-var MsgTimeout = 0;
-var MyLoop = 0;
-const MaxMessages=10;
-function ShowError(MyError,Duration=10000) {
-    var TheMessage = MyError;
-    if (ActiveMessage.length)   {       // Already showing a message, add it and clear timer
-        for ( MyLoop=0;MyLoop<ActiveMessage.length;MyLoop++) {
-            if (ActiveMessage[MyLoop].message==MyError) {
-                ActiveMessage[MyLoop].count++;
-                clearTimeout(ActiveMessage[MyLoop].MsgTimeout);                       // clear counter that will clear the message
-                ActiveMessage[MyLoop].MsgTimeout = setTimeout(function(MyMsg) {
-                    MyLoop = ActiveMessage.findIndex((myname)=> {return MyMsg == myname.message});
-                    ActiveMessage.splice(MyLoop,1);              //and remove the old entry;
-                    SHowMessages()
-                },Duration,MyError);// and set it to start again.
-                break;
-            }
-        }
-    }
-    if (MyLoop >= ActiveMessage.length)
-        {ActiveMessage.push({count:1,message:MyError,TimeOut:Duration})          
-        MyLoop=ActiveMessage.length-1;
-        ActiveMessage[MyLoop].MsgTimeout = setTimeout(function(MyMsg) {
-            MyLoop = ActiveMessage.findIndex((myname)=> {return MyMsg == myname.message});
-            ActiveMessage.splice(MyLoop,1);              //and remove the old entry;
-            SHowMessages()
-        },Duration,MyError);// and set it to start again.
-    }
-    
-    SHowMessages();
+const MaxTimeMsgPlaced = 30;    // number of secvonds a message will be shown
+var TimeMsgPlaced=0;
+
+
+function ShowError(MyError) {
+    document.getElementById("err01").innerHTML =  '<span class="blinking"> '+  MyError + '</span> <br>';
+    TimeMsgPlaced=MaxTimeMsgPlaced;
 }
 
-function SHowMessages(){
-    var CurrMessage = '<span class="blinking">' 
-    for ( var MyLoop=0;MyLoop<ActiveMessage.length;MyLoop++) {
-        if (ActiveMessage[MyLoop].count==1)
-            CurrMessage += ActiveMessage[MyLoop].message + "<br>"
-        else
-            CurrMessage += ActiveMessage[MyLoop].message + " ("+ ActiveMessage[MyLoop].count+")<br>"
-    }
-    CurrMessage += '</span> <br>';
-    document.getElementById("err01").innerHTML =  CurrMessage
+function ClearMessage() {
+    document.getElementById("err01").innerHTML =  '<span class="blinking"> '+  '' + '</span> <br>';
 
 }
 
@@ -51,16 +19,16 @@ function MakeSureWeHaveTheLatestProject(MyFunc)
         if (this.readyState == 4)
             if (this.status == 200) 
                 if (this.responseText!=MyProject.lastchange)    {    // Test here if LastChange has changed
-                    console.log("Change in LastChange detected")
-                    LoadProject(MyFunc,true)                  // Yes, reload project-file, then interpret the project
+                    console.log("Change in ProjectLastChange detected")
+                    LoadProject(MyFunc,false)                  // Yes, reload project-file, then interpret the project
                 }
                 else {
-                    LastChange = MyProject.lastchange;            // No, we can directly interpret the project
+                    ProjectLastChange = MyProject.lastchange;            // No, we can directly interpret the project
                     MyProject.ChangeDetected = false;
                     MyFunc(MyProject);                                 
                 }
             else {
-                ShowError("Error while getting latest status from NEEO");
+                ShowError("Error while getting latest status from NEEO "+url);
                 return 0;
             };
     }
@@ -78,8 +46,8 @@ function LoadProject(MyFunc,ChangeDetected) {
             MyJSON = JSON.parse(this.responseText);
             MyProject=this.responseText;
             sessionStorage.setItem("NEEO-Project",this.responseText);
-            MyJSON.ChangeDetected = ChangeDetected;
-            LastChange = MyJSON.lastchange;
+            MyProject.ChangeDetected = ChangeDetected;
+            ProjectLastChange = MyJSON.lastchange;
             MyFunc(MyJSON);
         }
     };
@@ -89,14 +57,13 @@ function LoadProject(MyFunc,ChangeDetected) {
 
 function GetActScenario()
 {
-  if (!MySettings.ShowActScen) {
-    document.getElementById("ActFlex").innerHTML = ""; 
-    return
-}
+    if (!MySettings.ShowActScen) {
+        document.getElementById("ActFlex").innerHTML = ""; 
+        return
+    }
 
-  var HTTPGetActScenario = new XMLHttpRequest();
-
-  HTTPGetActScenario.onreadystatechange = function() {
+    var HTTPGetActScenario = new XMLHttpRequest();
+    HTTPGetActScenario.onreadystatechange = function() {
     if (this.readyState == 4 && this.status == 200) {   // Did we get the active scenario-keys?
       var MyProject = sessionStorage.getItem("NEEO-Project"); // Yes, getc the details of these scenarios from sessionStorage
       var myArr = JSON.parse(this.responseText);
@@ -107,6 +74,7 @@ function GetActScenario()
   HTTPGetActScenario.open("GET", url+'/activescenariokeys', true);
      HTTPGetActScenario.send();
 }  
+
 function ParseScenario(ActiveRCP,url,Project)
   {
   var ActiveTable=  '<table border = "1">';  
@@ -120,13 +88,15 @@ function ParseScenario(ActiveRCP,url,Project)
         for (let RCP=0;RCP < ActiveRCP.length;RCP++) {
          if (Scenarios[SCN].key == ActiveRCP[RCP])
              {if (!Found)
-                FlexOut = "Active Scenarios<br>" 
+                FlexOut = '<div class="actscen" <label>Active Scenarios</label><br></div> '; 
             Found++;
             FlexOut+= '<div class="ACTScenario">' 
             FlexOut+= '<article class="ACTScen-deviceIcon"> <a href="Device.html?roomname=' + Scenarios[SCN].roomName +  '&roomkey=' + Scenarios[SCN].roomKey + '&url=' + url+'&scenario=' + Scenarios[SCN].name +'"><img class="image1" height="40" width="40" src="Icons/'+ Scenarios[SCN].icon+'.jpg"    width="40" height="40"></a></article>'
             FlexOut+= '<article class="ACTScen-ScenName">   <a href="Device.html?roomname=' + Scenarios[SCN].roomName +  '&roomkey=' + Scenarios[SCN].roomKey + '&url=' + url+'&scenario=' + Scenarios[SCN].name +'">' + Scenarios[SCN].name  +'</a></article>'   
             FlexOut+= '<aside class="ACTScen-RoomName">'+ Scenarios[SCN].roomName  +'</aside>'
             FlexOut+= '<article class="ACTScen-PowerOff"> <a onclick="HandleACTClick('+"'poweroff'"+ ",'" +   Scenarios[SCN].roomKey + "','','" +  Scenarios[SCN].key +"','"  + url+"')"+ '"><img class="image1" height="40" width="40"   src="Icons/POWEROFF.jpg"   width="40" height="40"></a></article>'
+//            FlexOut+= '<article class="ACTScen-PowerOff"> <a href="' + 'Execute.html?poweroff=true&roomkey=' + Scenarios[SCN].roomKey +  '&roomname=' + Scenarios[SCN].roomName + '&scenario=' + Scenarios[SCN].key  + '&poweroff=true' + '&url=' + url+'"><img class="image1" height="40" width="40"   src="Icons/POWEROFF.jpg"   width="40" height="40"></a></article>'
+//onclick="HandleClick('+"'button','"+Shortcut.deviceRoomKey+"','"+Shortcut.deviceKey+"','"+ Shortcut.componentKey+"','"
         }
         if (Found == ActiveRCP.length)
             break;
@@ -134,6 +104,8 @@ function ParseScenario(ActiveRCP,url,Project)
     }
        
     document.getElementById("ActFlex").innerHTML = FlexOut;  
+/*    ActiveTable += "</table>"; 
+    document.getElementById("act01").innerHTML = ActiveTable;*/
   }
 
 function GetNeeoProject(MyFunc) {
@@ -178,6 +150,12 @@ function NavigateUp(CurrPage,) {
     if (CurrPage == "GetARoom") 
         window.location.href='index.html?'+'&url='+url
     else
+    if (CurrPage == "ShowAllDevices") 
+        window.location.href='index.html?'+'&url='+url
+        else
+        if (CurrPage == "ShowDevice") 
+            window.location.href='ShowAllDevices.html?'+'&url='+url
+        else
     if (CurrPage == "Directory")  {
         const queryString = window.location.search;
         const urlParams = new URLSearchParams(queryString);
@@ -221,6 +199,20 @@ function ItemsHandler(CurrPage) {
     PutBrowserSettings(CurrPage,JSON.stringify(MySettings))
 }
 
+function BrainHandler(CurrPage) {
+    MySettings.BrainIP = BrainIP.value;
+    MakeURLFromBrainIP(BrainIP.value)
+    UpdateNow(1);
+    TillRefresh=1;
+    PutBrowserSettings("NEEO",JSON.stringify(MySettings))
+}
+
+function MakeURLFromBrainIP(MyBrainIP) {
+    url='http://'+MyBrainIP+":3000/v1/projects/home"
+    URLParts = url.split(':3000')
+    URLParts = URLParts[0].split('/') // ==> 
+  }
+  
 function RefreshHandler(CurrPage) {
     MySettings.Refresh = Refresh.value;
     UpdateNow();
@@ -228,12 +220,12 @@ function RefreshHandler(CurrPage) {
 }
 
 window.onload=function() {
-window.setInterval(function() {
-    document.getElementById("tod01").innerHTML = TheHeading + ' ' + new Date().toLocaleTimeString('en-US', { hour12: false});
-    if (MySettings.Refresh&&!--TillRefresh) { // page-interval is se to every second, wait till x seconds have passed
-        TillRefresh=MySettings.Refresh;
-        UpdateNow();
-    }
+   window.setInterval(function() {
+        document.getElementById("tod01").innerHTML = TheHeading + ' ' + new Date().toLocaleTimeString('en-US', { hour12: false});
+        if (MySettings.Refresh&&!--TillRefresh) { // page-interval is se to every second, wait till x seconds have passed
+            TillRefresh=MySettings.Refresh;
+            UpdateNow();
+        }
     },1000)
 }
  

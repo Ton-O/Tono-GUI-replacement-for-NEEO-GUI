@@ -1,7 +1,7 @@
 'use strict';
 
-const RefreshSensor = true;
-const CreateFullObject = false;
+//const { findLimit } = require("async");
+//const subs = require('Lib/SubModules.js')
 var queryString = window.location.search;
 var urlParams = new URLSearchParams(queryString);
 var url;
@@ -17,17 +17,12 @@ var TheHeading = "";
 var FavoOut = "";
 var ShortcutOut;
 var Refreshing=false;
-var NrItems;
-
-
 var Action;
 var UsedScenario;
 var MySettings;
 var AllShortcuts = [];
-var ShortcutSlideFound=false;
 var MyFavorites = {}
 var MySlides = [];
-var SlidesMaintainedByUser=false; 
 var AllShortcuts = [];
 var MyDirectories = [];
 
@@ -36,7 +31,7 @@ var ActiveScenariosURL= url+'/activescenariokeys';
 var HTTPGetAllShortcuts = new XMLHttpRequest();
 
 var MyProject = ""; 
-var LastChange; 
+var ProjectLastChange; 
 var MySettings = {}
 var Favorites = {}
 var MyDevices = {};
@@ -88,17 +83,22 @@ function HandleClick(type,RoomKey,DeviceKey,Action,url)
       let ExecURL=RoomURL+'scenarios/'+ Action +'/poweroff';
       xmlHttp.open("GET",  ExecURL, true);
       xmlHttp.send();
+      UpdateNow();
     }
-    UpdateNow();
+
 }   
 
-function HandleParams() {
-
+function HandleParams() 
+{
+var URLParts;
 url = urlParams.get('url')
 RoomKey = urlParams.get('roomkey')
 RoomName = urlParams.get('roomname')
 Scenario = urlParams.get('scenario')
 RoomURL =url+"/rooms/"+RoomKey+'/'
+URLParts = url.split(':3000')
+URLParts = URLParts[0].split('/') // ==> 
+BrainIP.value = URLParts[2];
 }
 
 function TransmitFavorite(channelNr, RoomKey,deviceKey, url) 
@@ -112,59 +112,55 @@ function TransmitFavorite(channelNr, RoomKey,deviceKey, url)
                 HandleClick("button",RoomKey,deviceKey,GetKeyByNameFromProject("DIGIT "+ channelNr[ll],MyRooms[RoomKey],MyDevices[deviceKey]),url)
               }
              }
-  UpdateNow();
 }
+
 function UpdateNow() 
 {
   TillRefresh = MySettings.Refresh;
-  //RefreshShortcuts()
-  GetNeeoProject(DecideOnRefreshOrUpdate);
+  if (TimeMsgPlaced)  {    //any outstanding message that we need to remove?? 
+      TimeMsgPlaced-=MySettings.Refresh;
+      if (TimeMsgPlaced <= 0) {
+          ClearMessage();
+          TimeMsgPlaced=0;
+      }
+    }
+
+  GetNeeoProject(Interpret_Project);
 }
 
-function GetSensorValues(MyCB) {
+function GetSensorValues(MyCB) 
+{
   var myPath;
   var SensorHTTP = new XMLHttpRequest();
   var ResponseValue;
-  var UseThisUrl;
   SensorHTTP.onreadystatechange = function() {
     if (this.readyState == 4 ) 
-      {const urlParams = new URLSearchParams(this.responseURL);
-      const MyEntry = urlParams.get('Entry')
-      try {
-      AllShortcuts[MyEntry].Ready=true;  // though it may be failed, flag call as completed
-      }
-      catch (err) {console.log("error in storing result",err,urlParams)}
-      if (this.status != 200) {
-            ShowError("sensor-get failed:" + this.responseURL +" " +this.status)
-          }
-      else {
-          ResponseValue = JSON.parse(this.responseText);
-          AllShortcuts[MyEntry].SensorValue = ResponseValue.value;
-          }
-      for (var Entry=0;Entry<AllShortcuts.length;Entry++) {
-        if (AllShortcuts[Entry].HasSensor&&AllShortcuts[Entry].Ready==false) {
-          UseThisUrl=AllShortcuts[Entry].SensorURL+"?bb=0&Entry="+Entry
-          SensorHTTP.open("GET", UseThisUrl, true);
-          SensorHTTP.send();
-          return;
+        {const urlParams = new URLSearchParams(this.responseURL);
+        const MyEntry = urlParams.get('Entry')
+        try {
+        AllShortcuts[MyEntry].Ready=true;  // though it may be failed, flag call as completed
         }
-      }
-      MyCB()
-    }   
+        catch (err) {console.log("error in storing result",err,urlParams)}
+        if (this.status != 200) {
+              ShowError("sensor-get failed:",this.responseURL,this.status)
+            }
+        else {
+            ResponseValue = JSON.parse(this.responseText);
+            AllShortcuts[MyEntry].SensorValue = ResponseValue.value;
+            }
+        HandleNextSensor()
+        }   
   };
   for (var Entry=0;Entry<AllShortcuts.length;Entry++) {
     if (AllShortcuts[Entry].HasSensor&&AllShortcuts[Entry].Ready==false)
-      {UseThisUrl=AllShortcuts[Entry].SensorURL+"?bb=0&Entry="+Entry
-      SensorHTTP.open("GET", UseThisUrl, true);
+
+      SensorHTTP.open("GET", SensorURL, true);
       SensorHTTP.send();
-      return;
-    }
   }
 }
  
-
-
-function GetSensorValue(Entry) {
+function GetSensorValue(Entry) 
+{
   var myPath;
   var Shortcut = AllShortcuts[Entry];
 
@@ -183,7 +179,7 @@ function GetSensorValue(Entry) {
         }
         catch (err) {console.log("error in storing result",err,urlParams)}
         if (this.status != 200) {
-              ShowError("sensor-get failed: " + this.responseURL + " " + this.status)
+              ShowError("sensor-get failed:",this.responseURL,this.status)
             }
         else {
             ResponseValue = JSON.parse(this.responseText);
@@ -196,16 +192,23 @@ function GetSensorValue(Entry) {
   SensorHTTP.send();
 }
 
-function GetKeyByNameFromProject(Name,deviceRoomName,deviceName) {
+function GetKeyByNameFromProject(Name,deviceRoomName,deviceName,deviceKey) 
+{
 if (Name.substring(0,1) == "<")
     return 0
-  var myPath = "$.rooms.'"+deviceRoomName+"'.devices.['"+deviceName+"'].macros.['"+Name+"'].key";
+  var myPath = "$.rooms.'"+deviceRoomName+"'.devices.[?(@.key == "+deviceKey+")].macros.'"+Name;
   var myKey = JSONPath.JSONPath({path: myPath, json: MyProject});
-  return myKey[0]
+  // "key": "7012772422919127040",
+  //$.project.rooms.'Living Room'.devices.[?(@.key == 7012772422919127040)].macros
+  if (myKey == undefined || myKey[0] == undefined)
+    return -1
+else
+  return myKey[0].key
 }
 
 function GetDeviceNameAndKeys(Project) 
-{var myPath = "$.rooms.*.devices.*";
+{
+var myPath = "$.rooms.*.devices.*";
 MyDevices = {};
 var TempDevices  = JSONPath.JSONPath({path: myPath, json: Project});
 for (var i=0;i<TempDevices.length;i++) 
@@ -217,7 +220,8 @@ for (var i=0;i<TempDevices.length;i++)
 }
 
 function GetRoomNameAndKeys(Project) 
-{var myPath = "$.rooms.*";
+{
+var myPath = "$.rooms.*";
 MyRooms = {};
 var TempRooms  = JSONPath.JSONPath({path: myPath, json: Project});
 for (var i=0;i<TempRooms.length;i++) 
@@ -228,7 +232,8 @@ for (var i=0;i<TempRooms.length;i++)
   }
 }
 
-function GetFavorites(RoomName,Scenario) {
+function GetFavorites(RoomName,Scenario) 
+{
 var myPath;
 var myCapab;
 var myFavo;
@@ -243,7 +248,7 @@ for (var i=0;i<Scenario.devices.length;i++) {
             for (var k=0;k<myDevices.length;k++)
                 if (myDevices[k].key == Scenario.devices[i]) { //<== this will give us a device key, but we need device name.....
                     myPath = "$.favorites.*";
-                    myFavo = JSONPath.JSONPath({path: myPath, json: myDevices[j]});
+                    myFavo = JSONPath.JSONPath({path: myPath, json: myDevices[k]});
                     if (myFavo != undefined)
                         return myFavo
                 }
@@ -252,39 +257,41 @@ for (var i=0;i<Scenario.devices.length;i++) {
 return  {}       
 }
 
-function FormatFavorites(RoomKey,Scenario) {
-//    MyFavorites = TestFavorites(RoomName,Scenario) ;
+function FormatFavorites(RoomKey,Scenario) 
+{
     if (!MyFavorites.length)
         return;
 
     FavoOut = '<div>'  // '<div class="BodyRow horizontal">' 
-    var NrFavosPerLine = 12; // NrFavosPerLine;
-    var NrFavos = NrFavosPerLine
+    var NrItemsPerLine = 12; // NrItemsPerLine;
+    var NrItems = NrItemsPerLine
 
     for (var Entry = 0;Entry<MyFavorites.length;Entry++) {
         let TheFav = MyFavorites[Entry];
-//        console.log(TheFav.channelNr," channel ",TheFav.channel.name)
 
-        if (NrFavos >= NrFavosPerLine) {
+        if (NrItems >= NrItemsPerLine) {
             FavoOut += '</div><div class="BodyRow horizontal">'
-            NrFavos=0;
+            NrItems=0;
         }
+
+        if (TheFav.channel.logoUrl.substring(0,20) == "https://neeo-channel")    // NEEO disabled all Icons, try our own http-server in brain (port 8000)
+           {let pos = TheFav.channel.logoUrl.substring(8).indexOf("/")           // Locate directory and filename
+           TheFav.channel.logoUrl = "http://"+BrainIP.value + ":8000/"+ TheFav.channel.logoUrl.substring(pos+8)  // substitute neeo-location with brainaddress
+      }
 
         FavoOut+= '<div><div class="BodyRow vertical">'          
         FavoOut+= '<div class="BodyRow-item"> <a> <img class="buttons"  src="'+TheFav.channel.logoUrl+'" height="40" weight="40" onclick="TransmitFavorite('+ "'"+TheFav.channelNr+"','"+ Scenario.roomKey+"','"+Scenario.mainDeviceKey+"','"+ url+"'"+')"></a> </div>'
         FavoOut+= '<div class="BodyRow-item">'+ TheFav.channel.name +'</div>'
         FavoOut+= '</div></div>'
-        NrFavos++;          
-    }
-
-  return FavoOut;
-  
+        NrItems++;          
+    }  
 }
   
-function TranslateWidget(Name,Shortcut,Destination="Shortcut"){
+function TranslateWidget(Name,Shortcut,Destination="Shortcut")
+{
   var Items = [];
   if (Name == "neeo.default.button-set.volume") 
-      Items = ["VOLUME DOWN", "VOLUME UP","<br>","MUTE TOGGLE"];
+      Items = ["VOLUME UP", "VOLUME DOWN","<br>","MUTE TOGGLE"];
   else
   if (Name == "neeo.default.button-set.controlpad") 
       Items = ["CURSOR LEFT","CURSOR UP","<br>","CURSOR RIGHT","CURSOR DOWN","<br>","CURSOR ENTER"];
@@ -328,11 +335,11 @@ function TranslateWidget(Name,Shortcut,Destination="Shortcut"){
       ShowError("Unknown widget ignored (please report): "+ Name);
       return 
   }
-  return FillWidget(Items,Shortcut,Destination)
-  
+  return FillWidget(Items,Shortcut,Destination)  
 }
 
-function FillWidget(Items,Shortcut,Destination="Shortcut") {
+function FillWidget(Items,Shortcut,Destination="Shortcut") 
+{
     let DummyShortcut = JSON.parse(JSON.stringify(Shortcut));
     DummyShortcut.Blockname = [];
     DummyShortcut.BlockLabel = [];
@@ -343,7 +350,7 @@ function FillWidget(Items,Shortcut,Destination="Shortcut") {
         DummyShortcut.Blockname[i] = Items[i];
         DummyShortcut.BlockLabel[i] = Items[i];
         DummyShortcut.BlockIcon[i] = Items[i]+".jpg";
-        DummyShortcut.BlockKey[i] = GetKeyByNameFromProject(Items[i],DummyShortcut.deviceRoomName,DummyShortcut.deviceName)
+        DummyShortcut.BlockKey[i] = GetKeyByNameFromProject(Items[i],DummyShortcut.deviceRoomName,DummyShortcut.deviceName,DummyShortcut.deviceKey)
         DummyShortcut.BlockcomponentKey[i] = DummyShortcut.BlockKey[i] 
     }
   if (Destination=="Shortcut") { 
@@ -352,11 +359,10 @@ function FillWidget(Items,Shortcut,Destination="Shortcut") {
     }
   else
     return DummyShortcut                            // Or just return the reconstructed dummy for slides
-
-
 }
-function GetSlides(RoomName,UsedScenario) { volumeDeviceKey
-  MySlides = [];
+
+function GetSlides(RoomName,UsedScenario) 
+{ 
   var volumeDeviceKey = JSONPath.JSONPath({path: "$.volumeDeviceKey", json: UsedScenario});
   var MainDevice = JSONPath.JSONPath({path: "$.mainDeviceKey", json: UsedScenario});
   var MyCapabilities = JSONPath.JSONPath({path: "$.capabilities", json: UsedScenario});
@@ -369,97 +375,76 @@ function GetSlides(RoomName,UsedScenario) { volumeDeviceKey
   var TempShortcut = {"key":MainDevice,"deviceRoomName":UsedScenario.roomName,"deviceRoomKey":UsedScenario.roomKey,"deviceKey":MainDevice,"deviceName":MyDevices[MainDevice]}
   var SlideNames = Object.keys(UsedScenario.slides) //.forEach(function(key) {
   var Destination = "Slide"
-  var MeAdded = 0;
-  if (volumeDeviceKey!=undefined&&volumeDeviceKey!=null) {
-    MySlides.push({"Name":"Volume","Weight":-1,"Widget":[]});
-    MeAdded++;
+
+  if (volumeDeviceKey.length&&volumeDeviceKey!=null) {
+    MySlides.push({"Name":"Volume","weight":-1,"Widget":[]});
     let VolShortcut = {"key":MainDevice,"deviceRoomName":UsedScenario.roomName,"deviceRoomKey":UsedScenario.roomKey,"deviceKey":volumeDeviceKey,"deviceName":MyDevices[volumeDeviceKey]}
 
     MySlides[0].Widget[0] = TranslateWidget("neeo.default.button-set.volume",VolShortcut,Destination);
-}
-
+  }
   
   for (var i =0;i<SlideNames.length;i++) {
       {if (Hidden[i]==false)                                         // neeo.slide. = 11
           if (SlideNames[i].substring(0,20)=="neeo.slide.favorites") // 11 +9
-            MySlides.push({"Name":"Favorites","Weight":Weight[i],"Widget":[]});
+            MySlides.push({"Name":"Favorites","weight":Weight[i],"Widget":[]});
           else
           if (SlideNames[i].substring(0,17)=="neeo.slide.numpad") {    //+ 6
-            MySlides.push({"Name":"Numpad","Weight":Weight[i],"Widget":[]});
+            MySlides.push({"Name":"Numpad","weight":Weight[i],"Widget":[]});
             MySlides[MySlides.length-1].Widget[0] = TranslateWidget("neeo.default.button-set.numpad",TempShortcut,Destination);
           }
           else
           if (SlideNames[i].substring(0,20)=="neeo.slide.transport") { // + 9
-            MySlides.push({"Name":"Transports","Weight":Weight[i],"Widget":[]});
+            MySlides.push({"Name":"Transports","weight":Weight[i],"Widget":[]});
             MySlides[MySlides.length-1].Widget[0] =  TranslateWidget("neeo.default.button-set.transport",TempShortcut,Destination)
           }
           else
           if (SlideNames[i].substring(0,17)=="neeo.slide.zapper") {   // +6
-            MySlides.push({"Name":"Zapper","Weight":Weight[i],"Widget":[]});
+            MySlides.push({"Name":"Zapper","weight":Weight[i],"Widget":[]});
             MySlides[MySlides.length-1].Widget[0] =  TranslateWidget("neeo.default.button-set.zapper",TempShortcut,Destination)
           }
           else
           if (SlideNames[i].substring(0,21)=="neeo.slide.controlpad") { // + 10
-            MySlides.push({"Name":"Controlpad","Weight":Weight[i],"Widget":[]});
+            MySlides.push({"Name":"Controlpad","weight":Weight[i],"Widget":[]});
             MySlides[MySlides.length-1].Widget[0] =  TranslateWidget("neeo.default.button-set.controlpad",TempShortcut,Destination)
           }
           else
-          if (SlideNames[i]=="neeo.slide.shortcuts") {
-            ShortcutSlideFound=true;
-            MySlides.push({"Name":"Shortcuts","Weight":Weight[i],"Widget":[]});
-          }
+          if (SlideNames[i]=="neeo.slide.shortcuts")
+            MySlides.push({"Name":"Shortcuts","weight":Weight[i],"Widget":[]});
           else
               ShowError("Unknown slide: " + SlideNames[i])
 
       }
   }
-
-  if (SlideNames.length!=0&&MySlides.length==MeAdded)         // User has manually suppressed slides, don't guess, just follow what he defined
-    SlidesMaintainedByUser=true; 
-
   return MySlides
 }
 
-function ProcessContent(Project) {
-var SlideLine = 0;
+function ProcessContent(Project) 
+{
+  var i;
   // Main loop to present information from NEEO.
   // Loop over all slides that were found and buildm output based on the expected content of the slide
   // Finally, finish the display
-  for (var i = 0;i<7;i++)
-    {document.getElementById("BodyTitle1"+i).innerHTML = ""
-    document.getElementById("Body1"+i).innerHTML =  "";
-    }  
-
-    if (!ShortcutSlideFound&&!SlidesMaintainedByUser) {
-    MySlides.push({"Name":"Shortcuts","Weight":0,"Widget":[]});  // Make sure we show shortcuts; still unclear why there's not always a slide for them.
-    ShortcutSlideFound=true;
+  for (var SlideIndex = 0;SlideIndex<MySlides.length;SlideIndex++) 
+    {document.getElementById("BodyTitle1"+SlideIndex).innerHTML = "Slide "+ MySlides[SlideIndex].Name
+      if (MySlides[SlideIndex].Name == "Favorites") 
+          document.getElementById("Body1"+SlideIndex).innerHTML =  FavoOut;  
+      else
+      if (MySlides[SlideIndex].Name == "Shortcuts") {
+          ProcessAllShortcuts(MyProject);
+          document.getElementById("Body1"+SlideIndex).innerHTML =  ShortcutOut;
+      }
+  }
+  if (!MySlides.length||(MySlides.length==1&&MySlides[0].Name == "Volume"))
+    {ProcessAllShortcuts(MyProject);
+    document.getElementById("Body1"+SlideIndex).innerHTML =  ShortcutOut;
     }
 
-  for (var SlideIndex = 0;SlideIndex<MySlides.length;SlideIndex++) 
-    FillSlides(Scenario,MySlides[SlideIndex],"",SlideIndex);
-
-  let TheDate = new Date(LastChange);
+  let TheDate = new Date(ProjectLastChange);
   document.getElementById("LastChange").innerHTML = "Last NEEO-change:"+ TheDate.toLocaleString();
-
 }
-function FillSlides(Scenario,Slide,deviceType,SlideIndex) {
-  document.getElementById("BodyTitle1"+SlideIndex).innerHTML = "Slide "+ MySlides[SlideIndex].Name
-  if (Slide.Name == "Favorites") {
-          document.getElementById("Body1"+SlideIndex).innerHTML =  FormatFavorites(RoomKey,UsedScenario);  
-        }
-  else 
-  if (Slide.Name == "Shortcuts")  // will be filled by call to GetAllShortcuts
-    {ProcessAllShortcuts(MyProject);
-    document.getElementById("Body1"+SlideIndex++).innerHTML =  ShortcutOut;
-  }
-  else 
-    document.getElementById("Body1"+SlideIndex).innerHTML =  CreateWidget(Slide.Widget[0]);  
-
-    return 0; 
-}
- 
-
-function GetContent(MyProject) {
+  
+function GetContent(Project) 
+{
   // Main loop to gather information from NEEO.
   // First, determine which scenario will be shown as scenario is the main portal to view
   // Then get the slides that will be shown, they also determine the order in which we will display items
@@ -468,11 +453,10 @@ function GetContent(MyProject) {
   // Shortcuts
   //
 
-  var myPath = "$.rooms."+RoomName+".scenarios."+Scenario+".*"; //$.rooms.Living Room.scenarios.Radio eyetv.*
-  var UsedScenarios = JSONPath.JSONPath({path: "$.rooms."+RoomName+".scenarios.*", json: MyProject});
+  var UsedScenarios = JSONPath.JSONPath({path: "$.rooms."+RoomName+".scenarios.*", json: Project});
   if (UsedScenarios.length == 0) {
     console.log("Oops, room/scenario not found....., did we have a change?")
-    if (MyProject.ChangeDetected)
+    if (Project.ChangeDetected)
       {ShowError("Scenario cannot be found.... perhaps deleted within NEEO-GUI?")
       return false;
       }
@@ -482,7 +466,21 @@ function GetContent(MyProject) {
     }
   }
   var MyScenIndex = UsedScenarios.findIndex((myname)=> {return Scenario == myname.name});
-  UsedScenario = UsedScenarios[MyScenIndex];
+  // if the "scenario name" passed to us isn';t foun d as scenarion, try getting the scenario content through the recipe
+  if (MyScenIndex==-1)
+    {var UsedRecipes = JSONPath.JSONPath({path: "$.rooms."+RoomName+".recipes.*", json: Project});
+    var MyRecpIndex = UsedRecipes.findIndex((myname)=> {return Scenario.trim() == myname.name.trim()});
+    // now loop over the steps to find the "Control step"(the step in the recipe where you tell it to show what controls)
+    var Steps = UsedRecipes[MyRecpIndex].steps;
+    var MyStepIndex = Steps.findIndex((step)=> {return "controls"  == step.type});
+    if (MyStepIndex!=-1)
+      { var MyScenarioKey=Steps[MyStepIndex].scenarioKey;
+        MyScenIndex = UsedScenarios.findIndex((ThisScenario)=> {return MyScenarioKey == ThisScenario.key});
+      }
+    }
+    UsedScenario = UsedScenarios[MyScenIndex];
+
+
   if (MyProject.ChangeDetected||PerformInitials) { 
     GetRoomNameAndKeys(MyProject);
     GetDeviceNameAndKeys(MyProject);
@@ -491,52 +489,58 @@ function GetContent(MyProject) {
     MyFavorites=GetFavorites(RoomName,UsedScenario);
     PerformInitials=false;
   }
+  for (var SlideIndex = 0;SlideIndex<MySlides.length;SlideIndex++) 
+    FillSlides(Scenario,MySlides[SlideIndex],"",SlideIndex);
 
-  GetAllShortcuts(RoomName,UsedScenario);           // Do this one as last, it will automatically call ProcessAllShortcuts
-  return true
+  let MyIndex = MySlides.findIndex((myname)=> {return "Shortcuts" == myname.Name});
+  if (MyIndex>-1||!MySlides.length||(MySlides.length==1&&MySlides[0].Name == "Volume")) 
+    GetAllShortcuts(RoomName,UsedScenario);           // Do this one as last, it will automatically call ProcessAllShortcuts
+return true
 }
   
-function DecideOnRefreshOrUpdate(Project) {
-if (Project.ChangeDetected) 
-  Interpret_Project(Project)
-else  
-  RefreshShortcuts()
+function FillSlides(Scenario,Slide,deviceType,SlideIndex) 
+{
+  document.getElementById("BodyTitle1"+SlideIndex).innerHTML = "Slide "+ MySlides[SlideIndex].Name
+  if (Slide.Name == "Favorites") 
+          document.getElementById("Body1"+SlideIndex).innerHTML =  FormatFavorites(RoomKey,UsedScenario);  
+  else 
+  if (Slide.Name == "Shortcuts")  // will be filled by call to GetAllShortcuts
+    return;  
+  else 
+    document.getElementById("Body1"+SlideIndex).innerHTML =  CreateWidget(Slide.Widget[0]);  
 
-}
-function RefreshShortcuts() {
-
-  for (let j=0;j< AllShortcuts.length;j++) 
-    AllShortcuts[j].Ready=false;
-
-  GetSensorValues(ProcessSensors);
-  GetActScenario();  
+    return 0; 
 }
 
-function ProcessSensors(MyProject){
-  for (let j=0;j< AllShortcuts.length;j++) 
-    if (AllShortcuts[j].HasSensor)
-      {ShortcutOut="";
-        AllShortcuts[j].BuildOutput(AllShortcuts[j],RefreshSensor)
-        document.getElementById(AllShortcuts[j].componentKey).innerHTML = ShortcutOut;
-      }
+function RefreshShortcuts(Project,UsedScenario) 
+{
+  for (let j=0;j< Shortcuts.length;j++) 
+    AllShortcuts[AllShortcuts.length-1].Ready=false;
 
+  for ( j=0;j<AllShortcuts.length;j++) 
+      if (AllShortcuts[j].Ready==false&&AllShortcuts[j].HasSensor)
+            {GetSensorValue(j);
+            return;
+            }
+    ProcessContent(MyProject)
 }
-function SetSensorInfo(MyIndex,MyType) {
+
+function SetSensorInfo(MyIndex,MyType) 
+{
   AllShortcuts[MyIndex].HasSensor=true;
   AllShortcuts[MyIndex].Ready=false;
   AllShortcuts[MyIndex].NEEOType = MyType;
 
   var myPath = "$.rooms."+AllShortcuts[MyIndex].deviceRoomName+".devices.['"+AllShortcuts[MyIndex].deviceName+"']."+AllShortcuts[MyIndex].NEEOType+".['"+AllShortcuts[MyIndex].componentName+"'].sensor.key";
   AllShortcuts[MyIndex].SensorKey = JSONPath.JSONPath({path: myPath, json: MyProject});
-  AllShortcuts[MyIndex].SensorURL = url+"/rooms/"+AllShortcuts[MyIndex].deviceRoomKey+"/devices/"+AllShortcuts[MyIndex].deviceKey+"/sensors/"+AllShortcuts[MyIndex].SensorKey;
+  AllShortcuts[MyIndex].SensorURL = url+"/rooms/"+AllShortcuts[MyIndex].deviceRoomKey+"/devices/"+AllShortcuts[MyIndex].deviceKey+"/sensors/"+AllShortcuts[MyIndex].SensorKey+"?bb=0&Entry="+MyIndex;
   
   Sensorsfound++;
   return 1
 }
-function GetAllShortcuts(Project,UsedScenario) {
 
-//  ShowError("");
-
+function GetAllShortcuts(Project,UsedScenario) 
+{
   var Shortcuts = JSONPath.JSONPath({path: "$.shortcuts.*", json: UsedScenario});
   Sensorsfound=0;
   var FoundAtLeastOneSensor=0;
@@ -544,53 +548,39 @@ function GetAllShortcuts(Project,UsedScenario) {
   
   for (let j=0;j< Shortcuts.length;j++) {
     let Shortcut = Shortcuts[j]
-    Shortcut.HasSensor = false;
-    Shortcut.Ready = true;
     MyType = Shortcut.componentType;
-    if (MyType =="widget") {
+    if (MyType =="widget") 
         TranslateWidget(Shortcut.componentName,Shortcut) // Will push anentire shortcut to the stack itself./
-        AllShortcuts[AllShortcuts.length-1].BuildOutput = OutputAWidget;  
-      }
     else {
       AllShortcuts.push(Shortcut);                       // Need to push the entry to the stack here
       let MyIndex = AllShortcuts.length-1;
       AllShortcuts[MyIndex].Icon= Shortcut.componentType+'.jpg"' 
-      if (Shortcut.componentType=="textlabel")  {
+      if (Shortcut.componentType=="textlabel") 
         FoundAtLeastOneSensor=SetSensorInfo(MyIndex,"textlabels");
-        Shortcut.BuildOutput = OutputATextlabel; 
-      }
-      else if (Shortcut.componentType=="slider") { 
+      else if (Shortcut.componentType=="slider") 
         FoundAtLeastOneSensor=SetSensorInfo(MyIndex,"sliders")
-        Shortcut.BuildOutput = OutputASlider; 
-      }
-      else if (Shortcut.componentType=="switch") { 
+      else if (Shortcut.componentType=="directory") 
+        FoundAtLeastOneSensor=SetSensorInfo(MyIndex,"directories")
+      else if (Shortcut.componentType=="switch")
         FoundAtLeastOneSensor=SetSensorInfo(MyIndex,"switches")
-        Shortcut.BuildOutput = OutputASwitch; 
-      }
-      else if (Shortcut.componentType=="directory") {  
-        Shortcut.BuildOutput = OutputADirectory; 
-      }
-      else if  (MyType =="button")  {
-        Shortcut.BuildOutput = OutputAButton; 
-      }
-      else
+      else if  (MyType == "Spacer")
+        {} 
+      else if  (MyType !="button") 
           {console.log("Unhandled type:",Shortcut.componentType);
           return;
           }
     }
   }
 
-  
-
   if (FoundAtLeastOneSensor==false)    // If we have no sensors, no need to wait till ProcessAllShortcuts is triggered is from there
     ProcessContent(Project) // 
   else
     HandleNextSensor()
-
   return true;  
 }
   
-function HandleNextSensor() { // this function is called when a call to NEEO is completed (to reduce load on NEEO) 
+function HandleNextSensor() 
+{ // this function is called when a call to NEEO is completed (to reduce load on NEEO) 
     var j;
     for ( j=0;j<AllShortcuts.length;j++) 
         if (AllShortcuts[j].Ready==false&&AllShortcuts[j].HasSensor)
@@ -600,101 +590,90 @@ function HandleNextSensor() { // this function is called when a call to NEEO is 
     ProcessContent(MyProject)
 
 }
- 
-function OutputAButton(Shortcut,UpdateSensor=false) {
-
-  if (!UpdateSensor) {
-    ShortcutOut+= '<div><div class="BodyRow vertical">'          
-    ShortcutOut+= '<div class="BodyRow-item"> <a> <img class="buttons"  src="Icons/'+Shortcut.Icon+'"' +'" onclick="HandleClick('+"'button','"+Shortcut.deviceRoomKey+"','"+Shortcut.deviceKey+"','"+ Shortcut.componentKey+"','"+ url+"'"+')"></a> </div>'
-    ShortcutOut+= '<div class="BodyRow-item">'+ Shortcut.componentLabel +'</div>'
-    ShortcutOut+= '</div></div>'
-  }
-  NrItems ++;
-}
-
-function OutputASwitch(Shortcut,UpdateSensor=false) {
-  if (!UpdateSensor) {
-    ShortcutOut+= '<div class="BodyRow vertical">' 
-  }
-  if (Shortcut.SensorValue)
-      ShortcutOut+= '<div  id="'+Shortcut.componentKey+ '" class="BodyRow-item"> <img class="image1" height="40" width="40"  src="Icons/switch-on.jpg"  onclick="UpdateSwitch('+"'"+Shortcut.deviceRoomKey+"','"+Shortcut.deviceKey  +"','"+Shortcut.componentKey + "','switches','off')" +'" ></div>'
-  else
-      ShortcutOut+= '<div  id="'+Shortcut.componentKey+ '" class="BodyRow-item"> <img class="image1" height="40" width="40"  src="Icons/switch-off.jpg"  onclick="UpdateSwitch('+"'"+Shortcut.deviceRoomKey+"','"+Shortcut.deviceKey  +"','"+Shortcut.componentKey + "','switches','on')" +'" ></div>'
-  if (!UpdateSensor) {
-      ShortcutOut+= '<div class="BodyRow-item"><a href=""></a> '+Shortcut.componentLabel +'</div>'
-      ShortcutOut+= '</div>'
-  }
-  NrItems++;
-}
-
-function OutputASlider(Shortcut,UpdateSensor=false) { 
-  if (!UpdateSensor) {  
-    ShortcutOut+= '<div class="BodyRow vertical">' 
-  }
-  ShortcutOut+= '<div  id="'+Shortcut.componentKey+ '" class="BodyRow-item"> <input type="range" min="1" max="100" value="'+  Shortcut.SensorValue   +'" class="slider"  onchange="UpdateSlider('+"'"+Shortcut.deviceRoomKey+"','"+Shortcut.deviceKey  +"','"+Shortcut.componentKey + "','sliders',this.value)" +'";></input></div>'   
-  if (!UpdateSensor) {
-    ShortcutOut+= '<div class="BodyRow-item"><a href=""></a> '+Shortcut.componentLabel +'</div>'
-    ShortcutOut+= '</div>'
-  }
-  NrItems +=2;
-}
-
-function OutputADirectory(Shortcut,UpdateSensor=false) { 
-  if (!UpdateSensor) {  
-    ShortcutOut+= '<div class="BodyRow vertical">'     
-    ShortcutOut+= '<div class="BodyRow-item"> <p> <a href="Directory.html?roomkey=' + RoomKey +  '&devicekey=' + Shortcut.deviceKey + '&directory=' + Shortcut.componentKey +  '&roomname=' + RoomName + '&scenario=' + Scenario +   '&url=' + url  +'"> <img class="image1" height="40" width="40"  src="Icons/directory.jpg"> </a>  </p></div>'
-    ShortcutOut+= '<div class="BodyRow-item">'+ Shortcut.componentLabel +'</div>'
-    ShortcutOut+= '</div>'
-  }
   
-//          ShortcutOut+= '<div class="BodyRow-item"> <span><a> <img class="buttons"  src="Icons/'+Shortcut.Icon+'" "href="' + 'Directory.html?roomkey=' + Shortcut.deviceRoomKey + '&devicekey=' + Shortcut.deviceKey + '&directory=' + Shortcut.deviceRoomKey +    '&url=' + url +'></a></span> </div>'
-//          ShortcutOut+= '<div class="BodyRow-item"><a href="' + 'Directory.html?roomkey=' + Shortcut.deviceRoomKey + '&devicekey=' + Shortcut.deviceKey + '&directory=' + Shortcut.deviceRoomKey + '&roomname=' + Shortcut.roomName +   '&url=' + url +'</a>'+ Shortcut.componentLabel +'</div>'
-//          ShortcutOut+= '</div>'
-  NrItems++;
-}
-  
-function OutputATextlabel(Shortcut,UpdateSensor=false) {  
-  let ToOccupy = Math.round(Shortcut.SensorValue.length+5/10)%5;
-
-  if (!UpdateSensor) {
-    if (ToOccupy > MySettings.ItemsPerLine - NrItems ) { // too large to fit omn the rest of the line?
-        ShortcutOut += '</div><div class="BodyRow horizontal">'// start on a new line
-            NrItems = 0;
-        }
-    ShortcutOut+= '<div class="BodyRow vertical-textlabel">' 
-    ShortcutOut+= '<div class="BodyRow-item"><a href=""></a>'+Shortcut.name   +'</div>'
-  }
-  ShortcutOut+= '<div  id="'+Shortcut.componentKey+ '"  class="BodyRow-item">'+Shortcut.SensorValue +'</div>';
-  if (!UpdateSensor) {
-    ShortcutOut+= '</div>'
-  }
-  NrItems+=ToOccupy;
-}
-
-function OutputAWidget(Shortcut,UpdateSensor=false) { 
-//  if (!UpdateSensor) {
-    ShortcutOut+= CreateWidget(Shortcut);
-//  }
-  NrItems++;
-}
-
 function ProcessAllShortcuts(Project) 
 {  
   ShortcutOut = '<div>'  // '<div class="BodyRow horizontal">' 
-  NrItems = MySettings.ItemsPerLine;
+  var NrItems = MySettings.ItemsPerLine;
 
-  AllShortcuts.sort((firstEl, secondEl) => { return firstEl.Weight > secondEl.Weight} ) //now sort them according to user-settings
+  AllShortcuts.sort((firstEl, secondEl) => { return (firstEl.weight > secondEl.weight) ?1:-1} ) //now sort them according to user-settings
   for (var Entry=0;Entry <AllShortcuts.length;Entry++) {
     var Shortcut=AllShortcuts[Entry];
     if (NrItems >= MySettings.ItemsPerLine) {
         ShortcutOut += '</div><div class="BodyRow horizontal">'
         NrItems=0;
     }
-    Shortcut.BuildOutput(Shortcut,CreateFullObject)
+
+    if (Shortcut.componentType == "button") {
+      ShortcutOut+= '<div><div class="BodyRow vertical">'          
+      ShortcutOut+= '<div class="BodyRow-item"> <a> <img class="buttons"  src="Icons/'+Shortcut.Icon+'"' +'" onclick="HandleClick('+"'button','"+Shortcut.deviceRoomKey+"','"+Shortcut.deviceKey+"','"+ Shortcut.componentKey+"','"+ url+"'"+')"></a> </div>'
+      ShortcutOut+= '<div class="BodyRow-item">'+ Shortcut.componentLabel +'</div>'
+      ShortcutOut+= '</div></div>'
+      NrItems++;
+    }
+    else {
+      if (Shortcut.componentType == "slider") {
+        ShortcutOut+= '<div class="BodyRow vertical"  id="'+Shortcut.key+ '">' 
+        ShortcutOut+= '<div class="BodyRow-item"> <input type="range" min="1" max="100" value="'+  Shortcut.SensorValue   +'" class="slider"  onchange="UpdateSlider('+"'"+Shortcut.deviceRoomKey+"','"+Shortcut.deviceKey  +"','"+Shortcut.componentKey + "','sliders',this.value)" +'";></input></div>'   
+        ShortcutOut+= '<div class="BodyRow-item"><a href=""></a> '+Shortcut.componentLabel +'</div>'
+        ShortcutOut+= '</div>'
+        NrItems+=2;
+      }
+      else {  
+        let ToOccupy;
+        if (Shortcut.componentType == "textlabel") {
+            if (Shortcut.SensorValue==undefined) 
+              Shortcut.SensorValue="Missing";
+            ToOccupy = Math.round(Shortcut.SensorValue.length+5/10)%5;
+            if (ToOccupy > MySettings.ItemsPerLine - NrItems ) { // too large to fit omn the rest of the line?
+                ShortcutOut += '</div><div class="BodyRow horizontal">'// start on a new line
+                    NrItems = 0;
+                }
+              
+            ShortcutOut+= '<div class="BodyRow vertical-textlabel"  id="'+Shortcut.key+ '">' 
+            ShortcutOut+= '<div class="BodyRow-item"><a href=""></a>'+Shortcut.name   +'</div>'
+            ShortcutOut+= '<div class="BodyRow-item">'+Shortcut.SensorValue +'</div>';
+            ShortcutOut+= '</div>'
+            NrItems+=ToOccupy;
+          
+        }
+        else
+        if (Shortcut.componentType == "switch"){
+            ShortcutOut+= '<div class="BodyRow vertical"  id="'+Shortcut.componentKey+ '">' 
+            if (Shortcut.SensorValue)
+                ShortcutOut+= '<div class="BodyRow-item"> <img class="image1" height="40" width="40"  src="Icons/switch-on.jpg"  onclick="UpdateSwitch('+"'"+Shortcut.deviceRoomKey+"','"+Shortcut.deviceKey  +"','"+Shortcut.componentKey + "','switches','off')" +'" ></div>'
+            else
+                ShortcutOut+= '<div class="BodyRow-item"> <img class="image1" height="40" width="40"  src="Icons/switch-off.jpg"  onclick="UpdateSwitch('+"'"+Shortcut.deviceRoomKey+"','"+Shortcut.deviceKey  +"','"+Shortcut.componentKey + "','switches','on')" +'" ></div>'
+            ShortcutOut+= '<div class="BodyRow-item"><a href=""></a> '+Shortcut.componentLabel +'</div>'
+            ShortcutOut+= '</div>'
+            NrItems++;
+        }
+        else
+        if (Shortcut.componentType == "widget" &&Shortcut.BlockcomponentKey.length) {
+            ShortcutOut+= CreateWidget(Shortcut);
+            NrItems++;
+        }
+        else
+        if (Shortcut.componentType == "directory") {
+          ShortcutOut+= '<div class="BodyRow vertical">'     
+          ShortcutOut+= '<div class="BodyRow-item"> <p> <a href="Directory.html?roomkey=' + RoomKey +  '&devicekey=' + Shortcut.deviceKey + '&directory=' + Shortcut.componentKey +  '&roomname=' + RoomName + '&scenario=' + Scenario +   '&url=' + url  +'"> <img class="image1" height="40" width="40"  src="Icons/directory.jpg"> </a>  </p></div>'
+          ShortcutOut+= '<div class="BodyRow-item">'+ Shortcut.componentLabel +'</div>'
+          ShortcutOut+= '</div>'
+         
+//          ShortcutOut+= '<div class="BodyRow-item"> <span><a> <img class="buttons"  src="Icons/'+Shortcut.Icon+'" "href="' + 'Directory.html?roomkey=' + Shortcut.deviceRoomKey + '&devicekey=' + Shortcut.deviceKey + '&directory=' + Shortcut.deviceRoomKey +    '&url=' + url +'></a></span> </div>'
+//          ShortcutOut+= '<div class="BodyRow-item"><a href="' + 'Directory.html?roomkey=' + Shortcut.deviceRoomKey + '&devicekey=' + Shortcut.deviceKey + '&directory=' + Shortcut.deviceRoomKey + '&roomname=' + Shortcut.roomName +   '&url=' + url +'</a>'+ Shortcut.componentLabel +'</div>'
+//          ShortcutOut+= '</div>'
+          NrItems++;
+        }
+
+      }
+    }
   }
   ShortcutOut+='</div>'
 }
-function CreateWidget(Shortcut) {
+
+function CreateWidget(Shortcut) 
+{
   var   MyShortcutOut = '<div class="BodyRow vertical"><div class="BodyRow-item"> '
     var FlexHeight=0;
     for (var i =0;i<Shortcut.BlockcomponentKey.length;i++) {
@@ -712,18 +691,13 @@ function CreateWidget(Shortcut) {
     return MyShortcutOut;
 }
 
-function ReInit(){ 
+function Interpret_Project(MyProject)
+{
   AllShortcuts=[];  
-  SlidesMaintainedByUser=false;
-  ShortcutSlideFound=false;
-}
-
-function Interpret_Project(Project)
-{MyProject = Project;
-  ReInit();
   if (GetContent(MyProject)) {  // Load NEEO-project and search current scenario in it.
       GetActScenario();         // Skip if load or search went wrong
   }
+Finit()
 }
 
 function LoadCookies(Device) 
@@ -746,19 +720,21 @@ function LoadCookies(Device)
 function  Init() {
   HandleParams();
   LoadCookies("Device");  // Get user setingfs for this page 
-  TheHeading =  'NEEO - device ';
+  TheHeading =  'NEEO - recipe ';
   }
 
-  function Finit() {
-    let TheDate = new Date(LastChange);
+  function Finit() 
+  {
+    let TheDate = new Date(ProjectLastChange);
     document.getElementById("LastChange").innerHTML = "Last NEEO-change:"+ TheDate.toLocaleString();
-    TheHeading =  'NEEO - device "'+ Scenario + '" room '+ RoomName;
+    TheHeading =  'NEEO - recipe "'+ Scenario + '" room '+ RoomName;
     document.title = TheHeading;
     document.getElementById("tod01").innerHTML = TheHeading + ' ' + new Date().toLocaleTimeString('en-US', { hour12: false});
   
   }
 
-function MyMain() {
+function MyMain() 
+{
   if (window.performance.getEntriesByType("navigation")[0].type == "navigate") {
     Action = urlParams.get('execute')
     if (Action!=""&&Action!=null) {  // Do we need to start the scenario?
@@ -772,6 +748,5 @@ function MyMain() {
 
 } // main
 Init();
-
 MyMain();
 Finit()

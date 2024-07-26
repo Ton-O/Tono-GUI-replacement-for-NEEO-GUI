@@ -7,41 +7,54 @@ var RoomName;
 var RoomKey;
 var AllRecipes = [];
 var RoomURL;
-var LastChange; 
+var ProjectLastChange; 
 var TheHeading;
 var MySettings = {}
 var MyContent="";
-function UpdateNow() {
+
+function UpdateNow() 
+{
     TillRefresh = MySettings.Refresh;
     GetNeeoProject(Interpret_Project);
 }
+
 function HandleClick(MyIndex) 
 {
   window.location.href='Device.html?roomname=' + RoomName + '&roomkey=' + RoomKey +   '&url=' + url + '&execute=' + AllRecipes[MyIndex].launch+ '&scenario=' + AllRecipes[MyIndex].Name 
 }
-function  HandleParams(){
+
+function  HandleParams()
+{
+  var URLParts;
   const queryString = window.location.search;
   const urlParams = new URLSearchParams(queryString);
   url = urlParams.get('url')
   RoomName = urlParams.get('roomname')
   RoomKey = urlParams.get('roomkey')
   RoomURL =url+"/rooms/"+RoomKey+'/'
+  URLParts = url.split(':3000')
+  URLParts = URLParts[0].split('/') // ==> 
+  BrainIP.value = URLParts[2];
 }
 
-function Interpret_Project(Project)
-{MyProject=Project;
-  GetAllRecipes();
+function Interpret_Project(MyProject)
+{
+  GetAllRecipes(MyProject);
   GetActScenario()
+  let TheDate = new Date(ProjectLastChange);
+  document.getElementById("LastChange").innerHTML = "Last NEEO-change:"+ TheDate.toLocaleString();
+
 }
 
-function GetAllRecipes() {
-  var myrecp = JSONPath.JSONPath({path: "$.rooms."+RoomName+".recipes.*", json: MyProject});
+function GetAllRecipes(Project) 
+{
+  var i;
+  var myrecp = JSONPath.JSONPath({path: "$.rooms."+RoomName+".recipes.*", json: Project});
   var MyRecipeKey  = "";
   var MyRecipeName = "";
   var MyRecipeType = "";
   var MyRecipeIcon = ""; 
   var MyRecipeHidden = ""; 
-  var MyRecipeEnabled = ""; 
   var MyScenarioKey = ""; 
   var MyRecipeMainDevice = ""; 
   var EntryToWrite = -1;
@@ -56,25 +69,31 @@ function GetAllRecipes() {
     MyRecipeWeight = myrecp[j].weight;
     MyScenarioKey = myrecp[j].scenarioKey;
     MyRecipeHidden = myrecp[j].isHiddenRecipe;
-    MyRecipeEnabled = myrecp[j].enabled;
     MyRecipeMainDevice = myrecp[j].mainDeviceType;
-    if (MyRecipeHidden==false&&MyRecipeEnabled!=false)
-        if (MyRecipeType=="launch") {
-          if (MyRecipeIcon =="default" )
-              MyRecipeIcon="Icons/"+MyRecipeMainDevice+".jpg"
-          else 
-              MyRecipeIcon="Icons/"+"Special.jpg"
-          AllRecipes.push({"launch": MyRecipeKey, "Name": MyRecipeName,"Type": MyRecipeType,"Icon": MyRecipeIcon,"Scenario": MyScenarioKey,"Weight":MyRecipeWeight});
-          EntryToWrite = AllRecipes.length -1; 
-          }
-        else {
-          let RecipeIndex = AllRecipes.findIndex((myname)=> {return MyRecipeName == myname.Name});
-          if (RecipeIndex>=0)  //DeviceName is in array
-                AllRecipes[RecipeIndex].poweroff = MyRecipeKey;
+    let RecipeIndex = AllRecipes.findIndex((myname)=> {return MyRecipeName == myname.Name});
+    if (RecipeIndex<0) { //DeviceName is not yet in array
+      if (MyRecipeHidden!=7) {
+        if (MyRecipeIcon =="default" )
+            MyRecipeIcon="Icons/"+MyRecipeMainDevice+".jpg"
+        else
+            MyRecipeIcon="Icons/"+"Special.jpg"
+        if (MyRecipeType=="launch")
+            AllRecipes.push({"launch": MyRecipeKey, "Name": MyRecipeName,"Type": MyRecipeType,"Icon": MyRecipeIcon,"Scenario": MyScenarioKey,"Weight":MyRecipeWeight});
+        else
+            AllRecipes.push({"poweroff": MyRecipeKey, "Name": MyRecipeName,"Type": MyRecipeType,"Icon": MyRecipeIcon,"Scenario": MyScenarioKey});
+
+            EntryToWrite = AllRecipes.length -1; 
+      }
+    }
+    else {  // DeviceName is already in array
+      if (MyRecipeType=="launch")
+          AllRecipes[RecipeIndex].launch = MyRecipeKey;
+      else
+          AllRecipes[RecipeIndex].poweroff = MyRecipeKey;
     
       }        
     }
-  AllRecipes.sort((firstEl, secondEl) => { return   secondEl.Weight - firstEl.Weight} )
+  AllRecipes.sort((firstEl, secondEl) => { return firstEl.weight > secondEl.weight} )
   var NrItems = 0;
   var DirEntryOut = "";
   DirEntryOut = '<div> <div class="LargeRow horizontal">' 
@@ -112,12 +131,14 @@ function GetAllRecipes() {
   UpdateRefreshPanel();
 
 }
-function  Init() {
+function  Init() 
+{
 HandleParams();
 LoadCookies("GetARoom");  // Get user setingfs for this page 
-
 }
-function MyMain() {
+
+function MyMain() 
+{
   if (window.performance.getEntriesByType('navigation').length &&window.performance.getEntriesByType("navigation")[0].type == "navigate") {
     Action = urlParams.get('execute')
     if (Action!=""&&Action!=null) {  // Do we need to start the scenario?
@@ -131,9 +152,8 @@ function MyMain() {
 Init();
 
 MyMain();
-let TheDate = new Date(LastChange);
+let TheDate = new Date(ProjectLastChange);
 document.getElementById("LastChange").innerHTML = "Last NEEO-change:"+ TheDate.toLocaleString();
 TheHeading =  'NEEO - recipes for room '+ RoomName;
 document.title = TheHeading;
 document.getElementById("tod01").innerHTML = TheHeading + ' ' + new Date().toLocaleTimeString('en-US', { hour12: false});
-

@@ -12,13 +12,14 @@
       <input type="text" id="BrainIP" name="brain" onchange="BrainHandler('BrainIP')"; required minlength="1" maxlength="15" size="15">
     <ul class="navigation" 
       <li> <Label>Refresh every</Label></li>
-      <li><input type="text" id="Refresh" name="Refresh" onchange="RefreshHandler('GetARoom')"; required minlength="1" maxlength="2" size="2"></l>
+      <li><input type="text" id="Refresh" name="Refresh" onchange="RefreshHandler('ShowAllDevices')"; required minlength="1" maxlength="2" size="2"></l>
         <li> <Label>#Items</Label></li>    
-        <li><input type="text" id="Items" name="Items" onchange="ItemsHandler('GetARoom')"; required minlength="1" maxlength="2" size="2"></l>
-          <li><button onclick="NavigateUp('GetARoom')">Go Up</button></li>
-        <li><button id="act99" onclick="ShowActHandler('GetARoom');">active scenarios</button></li>
+        <li><input type="text" id="Items" name="Items" onchange="ItemsHandler('ShowAllDevices')"; required minlength="1" maxlength="2" size="2"></l>
+          <li><button onclick="NavigateUp('ShowAllDevices')">Go Up</button></li>
+        <li><button id="act99" onclick="ShowActHandler('ShowAllDevices');">active scenarios</button></li>
     </ul>
   </div>
+
 </head>
 <body> 
 
@@ -37,7 +38,7 @@
 </p>
 <script type="text/javascript" src="Lib/index-browser-umd.cjs"></script>
 <script type="text/javascript" src="Lib/SubModules.js"></script>  
-<script type="text/javascript" data-main="app/GetARoomAPP" src="Lib/require.js"></script>  
+<script type="text/javascript" data-main="app/ShowAllDevices" src="Lib/require.js"></script>  
 
 <script>
 </script>
