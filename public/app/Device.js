@@ -9,6 +9,10 @@ var RoomKey;
 var RoomName;
 var Scenario;
 var RoomURL;
+var srcVolumeDeviceKey;
+var srcMainDevice;
+var srcCapabilities;
+var srcSlides;
 var Sensors = [];
 var Sensorsfound;
 var TillRefresh;
@@ -232,29 +236,22 @@ for (var i=0;i<TempRooms.length;i++)
   }
 }
 
-function GetFavorites(RoomName,Scenario) 
+function GetFavorites(RoomName) 
 {
 var myPath;
 var myCapab;
 var myFavo;
 var myDevices;
-for (var i=0;i<Scenario.devices.length;i++) {
-      myPath = "$.capabilities.["+Scenario.devices[i]+'].*' //+Scenario.key+".capabilities.*"; //  .['neeo.feature.favorites']";
-      myCapab = JSONPath.JSONPath({path: myPath, json: Scenario});
-      for (var j=0;j<myCapab.length;j++)
-        if (myCapab[j] == 'neeo.feature.favorites') { //<== this will give us a device key, but we need device name.....
-            myPath = "$.rooms."+RoomName+".devices.*";
-            myDevices = JSONPath.JSONPath({path: myPath, json: MyProject});
-            for (var k=0;k<myDevices.length;k++)
-                if (myDevices[k].key == Scenario.devices[i]) { //<== this will give us a device key, but we need device name.....
-                    myPath = "$.favorites.*";
-                    myFavo = JSONPath.JSONPath({path: myPath, json: myDevices[k]});
-                    if (myFavo != undefined)
-                        return myFavo
-                }
-        } 
-    }  
-return  {}       
+  myPath = "$.rooms."+RoomName+".devices.*";
+  myDevices = JSONPath.JSONPath({path: myPath, json: MyProject});
+  for (var k=0;k<myDevices.length;k++)
+      if (myDevices[k].key == srcMainDevice) { //Favorites are always obtained from main device.....
+          myPath = "$.favorites.*";
+          myFavo = JSONPath.JSONPath({path: myPath, json: myDevices[k]});
+          if (myFavo != undefined)
+              return myFavo
+      }
+  return  {}       
 }
 
 function FormatFavorites(RoomKey,Scenario) 
@@ -279,12 +276,13 @@ function FormatFavorites(RoomKey,Scenario)
            TheFav.channel.logoUrl = "http://"+BrainIP.value + ":8000/"+ TheFav.channel.logoUrl.substring(pos+8)  // substitute neeo-location with brainaddress
       }
 
-        FavoOut+= '<div><div class="BodyRow vertical">'          
-        FavoOut+= '<div class="BodyRow-item"> <a> <img class="buttons"  src="'+TheFav.channel.logoUrl+'" height="40" weight="40" onclick="TransmitFavorite('+ "'"+TheFav.channelNr+"','"+ Scenario.roomKey+"','"+Scenario.mainDeviceKey+"','"+ url+"'"+')"></a> </div>'
-        FavoOut+= '<div class="BodyRow-item">'+ TheFav.channel.name +'</div>'
-        FavoOut+= '</div></div>'
-        NrItems++;          
+      FavoOut+= '<div><div class="BodyRow vertical">'          
+      FavoOut+= '<div class="BodyRow-item"> <a> <img class="buttons"  src="'+TheFav.channel.logoUrl+'" height="40" weight="40" onclick="TransmitFavorite('+ "'"+TheFav.channelNr+"','"+ Scenario.roomKey+"','"+Scenario.mainDeviceKey+"','"+ url+"'"+')"></a> </div>'
+      FavoOut+= '<div class="BodyRow-item">'+ TheFav.channel.name +'</div>'
+      FavoOut+= '</div></div>'
+      NrItems++;          
     }  
+    return FavoOut;
 }
   
 function TranslateWidget(Name,Shortcut,Destination="Shortcut")
@@ -329,18 +327,29 @@ function TranslateWidget(Name,Shortcut,Destination="Shortcut")
   if (Name == "neeo.default.button-set.transport-search")
       Items = ["REVERSE", "FORWARD"]
   else 
+  if (Name == "neeo.default.button-set.transport-skip")
+      Items = ["SKIP SECONDS BACKWARD", "SKIP SECONDS FORWARD"]
+  else 
   if (Name == "neeo.default.button-set.transport-scan")
       Items = ["SKIP BACKWARD", "SKIP FORWARD"]
+  else 
+  if (Name == "neeo.default.button-set.colors")
+      Items = ["FUNCTION RED","FUNCTION GREEN","FUNCTION YELLOW","FUNCTION BLUE"]
+  else 
+  if (Name == "neeo.default.button-set.grid.apps")
+      Items = ["AMAZON","CRACKLE","HULU","HULU PLUS","INPUT SPOTIFY","NETFLIX","GOOGLE PLAY","VIMEO","VUDU","YOU TUBE"]
   else {
       ShowError("Unknown widget ignored (please report): "+ Name);
+      console.log("Missing widgetinfo:",Name)
       return 
   }
-  return FillWidget(Items,Shortcut,Destination)  
+  return FillWidget(Name,Items,Shortcut,Destination)  
 }
 
-function FillWidget(Items,Shortcut,Destination="Shortcut") 
+function FillWidget(Widget,Items,Shortcut,Destination="Shortcut") 
 {
     let DummyShortcut = JSON.parse(JSON.stringify(Shortcut));
+    DummyShortcut.WidgetName = Widget;
     DummyShortcut.Blockname = [];
     DummyShortcut.BlockLabel = [];
     DummyShortcut.BlockIcon = [];
@@ -361,59 +370,184 @@ function FillWidget(Items,Shortcut,Destination="Shortcut")
     return DummyShortcut                            // Or just return the reconstructed dummy for slides
 }
 
+function GetMetaOnRecipe(RoomName,UsedScenario)
+{
+  srcVolumeDeviceKey = JSONPath.JSONPath({path: "$.volumeDeviceKey", json: UsedScenario});
+  srcMainDevice = JSONPath.JSONPath({path: "$.mainDeviceKey", json: UsedScenario});
+  srcCapabilities = JSONPath.JSONPath({path: "$.capabilities", json: UsedScenario});
+  srcSlides = JSONPath.JSONPath({path: "$.slides", json: UsedScenario});
+
+}
+
+function CheckSlideContent(MyObject,Weight,TempShortcut,Destination) 
+{var MySpecificObject;
+  var AllParts = MyObject.split('.')
+  MySpecificObject = AllParts[2];
+
+  if (MySpecificObject == "favorites") // 11 +9
+    MySlides.push({"Name":"Favorites","weight":Weight,"Widget":[]});
+  else
+  if (MySpecificObject == "numpad") {    //+ 6
+    MySlides.push({"Name":"Numpad","weight":Weight,"Widget":[]});
+    MySlides[MySlides.length-1].Widget[0] = TranslateWidget("neeo.default.button-set.numpad",TempShortcut,Destination);
+  }
+  else
+  if (MySpecificObject =="transports" && AllParts[3] == "record") 
+    {var myPart = 0;
+    MySlides.push({"Name":"Transports","weight":Weight,"Widget":[]});
+    MySlides[MySlides.length-1].Widget[myPart++] =  TranslateWidget("neeo.default.button-set.colors",TempShortcut,Destination)
+    MySlides[MySlides.length-1].Widget[myPart++] =  TranslateWidget("neeo.default.button-set.language",TempShortcut,Destination)
+    MySlides[MySlides.length-1].Widget[myPart++] =  TranslateWidget("neeo.default.button-set.transport",TempShortcut,Destination)
+    //MySlides[MySlides.length-1].Widget[myPart++] =  TranslateWidget("neeo.default.button-set.transport-toggle",TempShortcut,Destination)
+    //MySlides[MySlides.length-1].Widget[myPart++] =  TranslateWidget("neeo.default.button-set.transport-no-stop",TempShortcut,Destination)
+    MySlides[MySlides.length-1].Widget[myPart++] =  TranslateWidget("neeo.default.button-set.transport-search",TempShortcut,Destination)
+    MySlides[MySlides.length-1].Widget[myPart++] =  TranslateWidget("neeo.default.button-set.transport-skip",TempShortcut,Destination)    
+    MySlides[MySlides.length-1].Widget[myPart++] =  TranslateWidget("neeo.default.button-set.record",TempShortcut,Destination)
+//    MySlides[MySlides.length-1].Widget[myPart++] =  TranslateWidget("x",TempShortcut,Destination)
+  }
+  else
+  if (MySpecificObject =="zapper") {   // +6
+    MySlides.push({"Name":"Zapper","weight":Weight,"Widget":[]});
+    MySlides[MySlides.length-1].Widget[0] =  TranslateWidget("neeo.default.button-set.zapper",TempShortcut,Destination)
+  }
+  else
+  if (MySpecificObject =="controlpad") { // + 10
+    MySlides.push({"Name":"Controlpad","weight":Weight,"Widget":[]});
+    MySlides[MySlides.length-1].Widget[0] =  TranslateWidget("neeo.default.button-set.controlpad",TempShortcut,Destination)
+  }
+  else
+  if (MySpecificObject =="apps") { // + 10
+    MySlides.push({"Name":"Apps","weight":Weight,"Widget":[]});
+    MySlides[MySlides.length-1].Widget[0] =  TranslateWidget("neeo.default.button-set.grid.apps",TempShortcut,Destination)
+  }
+  else
+  if (MySpecificObject == "shortcuts")
+    MySlides.push({"Name":"Shortcuts","weight":Weight,"Widget":[]});
+  else
+    {console.log("Missing slide-layout",MySpecificObject)
+      return -1;
+    }
+}
+
 function GetSlides(RoomName,UsedScenario) 
 { 
-  var volumeDeviceKey = JSONPath.JSONPath({path: "$.volumeDeviceKey", json: UsedScenario});
-  var MainDevice = JSONPath.JSONPath({path: "$.mainDeviceKey", json: UsedScenario});
-  var MyCapabilities = JSONPath.JSONPath({path: "$.capabilities", json: UsedScenario});
-  var CapabKey = Object.keys(MyCapabilities[0])
-  MyCapabilities = JSONPath.JSONPath({path: "$.capabilities.*", json: UsedScenario});
 
-  var Slides = JSONPath.JSONPath({path: "$.slides", json: UsedScenario});
   var Weight = JSONPath.JSONPath({path: "$.slides.*.weight", json: UsedScenario});
   var Hidden = JSONPath.JSONPath({path: "$.slides.*.hidden", json: UsedScenario});
-  var TempShortcut = {"key":MainDevice,"deviceRoomName":UsedScenario.roomName,"deviceRoomKey":UsedScenario.roomKey,"deviceKey":MainDevice,"deviceName":MyDevices[MainDevice]}
-  var SlideNames = Object.keys(UsedScenario.slides) //.forEach(function(key) {
+  var TempShortcut = {"key":srcMainDevice,"deviceRoomName":UsedScenario.roomName,"deviceRoomKey":UsedScenario.roomKey,"deviceKey":srcMainDevice,"deviceName":MyDevices[srcMainDevice]}
   var Destination = "Slide"
 
-  if (volumeDeviceKey.length&&volumeDeviceKey!=null) {
+  if (srcVolumeDeviceKey.length&&srcVolumeDeviceKey!=null) {
     MySlides.push({"Name":"Volume","weight":-1,"Widget":[]});
-    let VolShortcut = {"key":MainDevice,"deviceRoomName":UsedScenario.roomName,"deviceRoomKey":UsedScenario.roomKey,"deviceKey":volumeDeviceKey,"deviceName":MyDevices[volumeDeviceKey]}
-
+    let VolShortcut = {"key":srcMainDevice,"deviceRoomName":UsedScenario.roomName,"deviceRoomKey":UsedScenario.roomKey,"deviceKey":srcVolumeDeviceKey,"deviceName":MyDevices[srcVolumeDeviceKey]}
     MySlides[0].Widget[0] = TranslateWidget("neeo.default.button-set.volume",VolShortcut,Destination);
   }
-  
-  for (var i =0;i<SlideNames.length;i++) {
-      {if (Hidden[i]==false)                                         // neeo.slide. = 11
-          if (SlideNames[i].substring(0,20)=="neeo.slide.favorites") // 11 +9
-            MySlides.push({"Name":"Favorites","weight":Weight[i],"Widget":[]});
-          else
-          if (SlideNames[i].substring(0,17)=="neeo.slide.numpad") {    //+ 6
-            MySlides.push({"Name":"Numpad","weight":Weight[i],"Widget":[]});
-            MySlides[MySlides.length-1].Widget[0] = TranslateWidget("neeo.default.button-set.numpad",TempShortcut,Destination);
-          }
-          else
-          if (SlideNames[i].substring(0,20)=="neeo.slide.transport") { // + 9
-            MySlides.push({"Name":"Transports","weight":Weight[i],"Widget":[]});
-            MySlides[MySlides.length-1].Widget[0] =  TranslateWidget("neeo.default.button-set.transport",TempShortcut,Destination)
-          }
-          else
-          if (SlideNames[i].substring(0,17)=="neeo.slide.zapper") {   // +6
-            MySlides.push({"Name":"Zapper","weight":Weight[i],"Widget":[]});
-            MySlides[MySlides.length-1].Widget[0] =  TranslateWidget("neeo.default.button-set.zapper",TempShortcut,Destination)
-          }
-          else
-          if (SlideNames[i].substring(0,21)=="neeo.slide.controlpad") { // + 10
-            MySlides.push({"Name":"Controlpad","weight":Weight[i],"Widget":[]});
-            MySlides[MySlides.length-1].Widget[0] =  TranslateWidget("neeo.default.button-set.controlpad",TempShortcut,Destination)
-          }
-          else
-          if (SlideNames[i]=="neeo.slide.shortcuts")
-            MySlides.push({"Name":"Shortcuts","weight":Weight[i],"Widget":[]});
-          else
-              ShowError("Unknown slide: " + SlideNames[i])
+ 
+  // Check if we have slides manually configured... if not, use settings in slidepresets.json to derive slides from capabilities.
+  if (!srcSlides.length || srcSlides.length == 1&&Object.keys(srcSlides[0]).length==0 ) 
+    {//MySlides.push({"Name":"Favorites","weight":0,"Widget":[]});
+    MySlides.push({"Name":"Shortcuts","weight":1,"Widget":[]}); // ALWAYS add shortcuts slide; regardsless if there are any shortcuts defined.
+    var foundIt = false;
+    for (var i =0;i<srcCapabilities.length;i++)                 // loop over ScenarioCapabilities and find the maindevice's capabilities
+      {var DeviceKeypairs = Object.entries(srcCapabilities[i])
+      for (var j =0;j<DeviceKeypairs.length;j++)
+        {var devKey = DeviceKeypairs[j][0];
+        if (devKey == srcMainDevice)                            // Is this the main device?
+          {for (var k = 1;k<DeviceKeypairs[j].length;k++)       // then use these capabilities
+            {for (var l = 0;l<DeviceKeypairs[j][k].length;l++)  
+              {var Capa = DeviceKeypairs[j][k][l];                      
+                if (Capa == "neeo.device.type.tv" || Capa == "neeo.device.type.dvb" || Capa == "neeo.device.type.tuner" )
+                  {CheckSlideContent("neeo.slide.favorites",TempShortcut,Destination)
+                    CheckSlideContent("neeo.slide.zapper.generic",7,TempShortcut,Destination)
+                    CheckSlideContent("neeo.slide.controlpad.generic",8,TempShortcut,Destination)
+                    if (Capa != "neeo.device.type.tuner" ) // Only TV or DVB
+                      {//CheckSlideContent("neeo.slide.apps.generic",4,TempShortcut,Destination)
+                      CheckSlideContent("neeo.slide.numpad.tv",5,TempShortcut,Destination)
+                      CheckSlideContent("neeo.slide.transports.record",6,TempShortcut,Destination)
+                      }
+                }
+                else
+                if (Capa == "neeo.device.type.dvd")
+                  {CheckSlideContent("neeo.slide.controlpad.disc",1,TempShortcut,Destination)
+                  CheckSlideContent("neeo.slide.numpad.disc",2,TempShortcut,Destination)
+                  CheckSlideContent("neeo.slide.transports.scanandsearch",3,TempShortcut,Destination)
+                  CheckSlideContent("neeo.slide.transports.scan",4,TempShortcut,Destination)
+                  CheckSlideContent("neeo.slide.transports.scan-mini",5,TempShortcut,Destination)
+                  CheckSlideContent("neeo.slide.transports.search",6,TempShortcut,Destination)
+                  }
+                else
+                if (Capa == "neeo.device.type.mediaplayer")
+                  {//CheckSlideContent("neeo.slide.apps.generic",1,TempShortcut,Destination)
+                    CheckSlideContent("neeo.slide.controlpad.generic",2,TempShortcut,Destination)
+                    CheckSlideContent("neeo.slide.controlpad.generic.mini",3,TempShortcut,Destination)
+                    CheckSlideContent("neeo.slide.controlpad.generic.nocontrolpad",4,TempShortcut,Destination)
+                    CheckSlideContent("neeo.slide.transports.scanandsearch",5,TempShortcut,Destination)
+                    CheckSlideContent("neeo.slide.transports.scan",6,TempShortcut,Destination)
+                    CheckSlideContent("neeo.slide.transports.scan-mini",7,TempShortcut,Destination)
+                    CheckSlideContent("neeo.slide.transports.scanandsearch",8,TempShortcut,Destination)
+                  }
+                  else
+                  if (Capa == "neeo.device.type.vod")
+                      {//CheckSlideContent("neeo.slide.apps.generic",1,TempShortcut,Destination)
+                      CheckSlideContent("neeo.slide.controlpad.vod",2,TempShortcut,Destination)
+                      CheckSlideContent("neeo.slide.transports.scanandsearch",3,TempShortcut,Destination)
+                      CheckSlideContent("neeo.slide.transports.scan",4,TempShortcut,Destination)
+                      CheckSlideContent("neeo.slide.transports.scan-mini",5,TempShortcut,Destination)
+                      CheckSlideContent("neeo.slide.transports.search",6,TempShortcut,Destination)
+                  }
+                  else
+                  if (Capa == "neeo.device.type.projector")
+                      {CheckSlideContent("neeo.slide.hub.inputs",1,TempShortcut,Destination)
+                      //CheckSlideContent("neeo.slide.apps.generic",2,TempShortcut,Destination)
+                      CheckSlideContent("neeo.slide.controlpad.generic",3,TempShortcut,Destination)
+                      CheckSlideContent("neeo.slide.controlpad.generic.mini",4,TempShortcut,Destination)
+                      CheckSlideContent("neeo.slide.controlpad.generic.nocontrolpad",5,TempShortcut,Destination)
+                    }
+                    else
+                  if (Capa == "neeo.device.type.gameconsole")
+                      {CheckSlideContent("neeo.slide.controlpad.generic",1,TempShortcut,Destination)
+                      CheckSlideContent("neeo.slide.controlpad.generic.mini",2,TempShortcut,Destination)
+                      CheckSlideContent("neeo.slide.controlpad.generic.nocontrolpad",3,TempShortcut,Destination)
+                      CheckSlideContent("neeo.slide.transports.scanandsearch",4,TempShortcut,Destination)
+                      CheckSlideContent("neeo.slide.transports.scan",5,TempShortcut,Destination)
+                      CheckSlideContent("neeo.slide.transports.scan-mini",6,TempShortcut,Destination)
+                      CheckSlideContent("neeo.slide.transports.search",7,TempShortcut,Destination)
+                    }
+                    else
+                    if (Capa == "neeo.device.type.hvac")
+                      {CheckSlideContent("neeo.slide.hvac.temperature",1,TempShortcut,Destination)
+                      CheckSlideContent("neeo.slide.hvac.fan",2,TempShortcut,Destination)
+                      CheckSlideContent("neeo.slide.hvac.control",3,TempShortcut,Destination)
+                    }
+                    else
+                    if (Capa == "neeo.device.type.light")
+                      {CheckSlideContent("neeo.slide.light",1,TempShortcut,Destination)
+                  }
+                  /*                    widgets
+                      neeo.default.inputs-generic
+                      neeo.default.inputs
+*/
 
+                  }
+            }
+          foundIt=true;
+          break;
+          }
+        if (foundIt)
+          break;
+        }      
+      if (foundIt)
+        break;
       }
+  }
+  else
+    {var SlideNames = Object.keys(UsedScenario.slides)
+    for (var i =0;i<SlideNames.length;i++) {
+        {if (Hidden[i]==false)                                         // neeo.slide. = 11
+          if (CheckSlideContent(SlideNames[i],Weight[i],TempShortcut,Destination)==-1)
+                ShowError("Unknown slide: " + SlideNames[i])
+        }
+    }
   }
   return MySlides
 }
@@ -485,6 +619,7 @@ function GetContent(Project)
     GetRoomNameAndKeys(MyProject);
     GetDeviceNameAndKeys(MyProject);
     MyDirectories=[];                            // Will be filled when scanning shortcuts
+    GetMetaOnRecipe(RoomName,UsedScenario);
     MySlides = GetSlides(RoomName,UsedScenario); // This info will not be refreshed by default, only when project changes
     MyFavorites=GetFavorites(RoomName,UsedScenario);
     PerformInitials=false;
@@ -507,8 +642,10 @@ function FillSlides(Scenario,Slide,deviceType,SlideIndex)
   if (Slide.Name == "Shortcuts")  // will be filled by call to GetAllShortcuts
     return;  
   else 
-    document.getElementById("Body1"+SlideIndex).innerHTML =  CreateWidget(Slide.Widget[0]);  
-
+    {
+      for (var i=0;i<Slide.Widget.length;i++)
+      document.getElementById("Body1"+SlideIndex).innerHTML +=  CreateWidget(Slide.Widget[i]);  
+    }
     return 0; 
 }
 
@@ -550,7 +687,7 @@ function GetAllShortcuts(Project,UsedScenario)
     let Shortcut = Shortcuts[j]
     MyType = Shortcut.componentType;
     if (MyType =="widget") 
-        TranslateWidget(Shortcut.componentName,Shortcut) // Will push anentire shortcut to the stack itself./
+        TranslateWidget(Shortcut.componentName,Shortcut) // Will push an entire shortcut to the stack itself./
     else {
       AllShortcuts.push(Shortcut);                       // Need to push the entry to the stack here
       let MyIndex = AllShortcuts.length-1;
@@ -671,6 +808,7 @@ function ProcessAllShortcuts(Project)
   }
   ShortcutOut+='</div>'
 }
+
 
 function CreateWidget(Shortcut) 
 {
