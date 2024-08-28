@@ -125,38 +125,6 @@ function UpdateNow()
 
   GetNeeoProject(DecideOnRefreshOrUpdate);
 }
-
-function GetSensorValues() 
-{ var SensorHTTP = new XMLHttpRequest();
-  var ResponseValue;
-  var UseThisUrl;
-  SensorHTTP.onreadystatechange = function() {
-    if (this.readyState == 4 ) 
-        {const urlParams = new URLSearchParams(this.responseURL);
-        const MyEntry = urlParams.get('Entry')
-        try {
-          AllShortcuts[MyEntry].Ready=true;  // though it may be failed, flag call as completed
-        }
-        catch (err) {console.log("error in storing result",err,urlParams)}
-        if (this.status != 200) {
-              ShowError("sensor-get failed:" + this.responseURL +" " +this.status)
-            }
-        else {
-            ResponseValue = JSON.parse(this.responseText);
-            AllShortcuts[MyEntry].SensorValue = ResponseValue.value;
-            }
-        HandleNextSensor()
-        }   
-  };
-  for (var Entry=0;Entry<AllShortcuts.length;Entry++) {
-    if (AllShortcuts[Entry].HasSensor&&AllShortcuts[Entry].Ready==false)
-      {UseThisUrl=AllShortcuts[Entry].SensorURL+"?bb=0&Entry="+Entry
-      SensorHTTP.open("GET", UseThisUrl, true);
-      SensorHTTP.send();
-      return;
-    }
-  }
-}
  
 function GetSensorValue(Entry) 
 { var myPath;
@@ -191,14 +159,12 @@ function GetSensorValue(Entry)
 }
 
 function GetKeyByNameFromProject(Name,deviceRoomName,deviceName,deviceKey) 
-{ var LogStartVal1 = LogStart("GetKeyByNameFromProject "+Name)
-  if (Name.substring(0,1) == "<")
+{ if (Name.substring(0,1) == "<")
     return 0
   var myPath = "$.rooms.'"+deviceRoomName+"'.devices.[?(@.key == "+deviceKey+")].macros.'"+Name;
   var myKey = JSONPath.JSONPath({path: myPath, json: MyProject});
   // "key": "7012772422919127040",
   //$.project.rooms.'Living Room'.devices.[?(@.key == 7012772422919127040)].macros
-  LogEnd("GetKeyByNameFromProject "+Name,LogStartVal1)
   if (myKey == undefined || myKey[0] == undefined)
     return -1
   else
@@ -271,7 +237,6 @@ function FormatFavorites(RoomKey,Scenario)
   
 function TranslateWidget(Name,Shortcut,Destination="Shortcut")
 { var Items = [];
-  var LogStartVal1 = LogStart("TranslateWidget"+Name)
 
   if (Name == "neeo.default.button-set.volume") 
       Items = ["VOLUME UP", "VOLUME DOWN","<br>","MUTE TOGGLE"];
@@ -330,14 +295,12 @@ function TranslateWidget(Name,Shortcut,Destination="Shortcut")
   }
 
   let bb =FillWidget(Name,Items,Shortcut,Destination)  ;
-  LogEnd("TranslateWidget"+Name,LogStartVal1)
   return bb
 
 }
 
 function FillWidget(Widget,Items,Shortcut,Destination="Shortcut") 
 { 
-  var LogStartVal1 = LogStart("FillWidget"+Widget)
   let DummyShortcut = JSON.parse(JSON.stringify(Shortcut));
   DummyShortcut.WidgetName = Widget;
   DummyShortcut.Blockname = [];
@@ -357,10 +320,7 @@ if (Destination=="Shortcut") {
   //AllShortcuts[MyIndex].Ready=true;
   }
 else
-  {LogEnd("FillWidget"+Widget,LogStartVal1)
     return DummyShortcut                            // Or just return the reconstructed dummy for slides
-  }
-  LogEnd("FillWidget"+Widget,LogStartVal1)
 }
 
 function GetMetaOnRecipe(RoomName,UsedScenario)
@@ -373,8 +333,6 @@ function GetMetaOnRecipe(RoomName,UsedScenario)
 
 function CheckSlideContent(MyObject,Weight,TempShortcut,Destination) 
 { 
-  var LogStartVal1 = LogStart("CheckSlideContent")
-
   var MySpecificObject;
   var AllParts = MyObject.split('.')
   MySpecificObject = AllParts[2];
@@ -420,31 +378,14 @@ function CheckSlideContent(MyObject,Weight,TempShortcut,Destination)
     MySlides.push({"Name":"Shortcuts","weight":Weight,"Widget":[]});
   else
     {console.log("Missing slide-layout",MyObject)
-      LogEnd("CheckSlideContent",LogStartVal1)
       return -1;
     }
-    LogEnd("CheckSlideContent",LogStartVal1)
 
 }
 
-function LogStart(MyFuncName)
-{
-  let MyTime = new Date().getTime();
-  console.log(Indentation,"Starting function",MyFuncName);
-  Indentation = Indentation + "    "
-  return MyTime;
-}
-function LogEnd(MyFuncName,MyTime)
-{
-  let SecondsSpent =  (new Date().getTime() - MyTime) / 1000;
-  Indentation = Indentation.substring(0,Indentation.length-4)
-  console.log(Indentation,"Function ran ",MyFuncName,SecondsSpent,"Seconds");
-
-}
 
 function GetSlides(RoomName,UsedScenario) 
 {
-  var LogStartVal1 = LogStart("GetSlides")
   var TheSlides = JSONPath.JSONPath({path: "$.slides.*", json: UsedScenario});
   var Weight = JSONPath.JSONPath({path: "$.slides.*.weight", json: UsedScenario});
   var Hidden = JSONPath.JSONPath({path: "$.slides.*.hidden", json: UsedScenario});
@@ -558,8 +499,6 @@ function GetSlides(RoomName,UsedScenario)
         }
     }
   }
-   LogEnd("GetSlides",LogStartVal1)
-
   return MySlides
 }
 
@@ -687,14 +626,6 @@ function DecideOnRefreshOrUpdate(Project)
     RefreshShortcuts()
 }
 
-/*function RefreshShortcuts() {
-  for (let j=0;j< AllShortcuts.length;j++) 
-    AllShortcuts[j].Ready=false;
-
-  GetSensorValues();
-  GetActScenario();  
-}
-*/
 function RefreshShortcuts(Project,UsedScenario) 
 {
   for (let j=0;j< AllShortcuts.length;j++) 
@@ -955,14 +886,6 @@ function MyMain()
   GetNeeoProject(Interpret_Project);    // This is the main engine: Get the latest project from NEEO and callback to Interpret_Project
 
 } // main
-var LogStartVal1 = LogStart("Main")
-var LogStartValInit = LogStart("Main Init")
 Init();
-LogEnd("Main Init",LogStartValInit);
-var LogStartValMain = LogStart("Main Main")
 MyMain();
-LogEnd("Main",LogStartValMain);
-var LogStartValFinit = LogStart("Main Finit")
 Finit()
-LogEnd("Main Finit",LogStartValFinit);
-LogEnd("Main",LogStartVal1);
