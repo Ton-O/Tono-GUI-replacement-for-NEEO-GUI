@@ -6,12 +6,13 @@ var urlParams = new URLSearchParams(queryString);
 var url;
 var RoomKey; 
 var RoomName;
-var Scenario;
+var Scenario,LastScenario=null;
 var RoomURL;
 var srcVolumeDeviceKey;
 var srcMainDevice;
 var srcCapabilities;
 var srcSlides;
+var srcWeight,srcHidden;
 var Sensors = [];
 var Sensorsfound;
 var TillRefresh;
@@ -151,7 +152,7 @@ function GetSensorValue(Entry)
             ResponseValue = JSON.parse(this.responseText);
             AllShortcuts[MyEntry].SensorValue = ResponseValue.value;
             }
-        HandleNextSensor()
+//        HandleNextSensor()   ### why do we call this in case of getvalue error?
         }   
   };
   SensorHTTP.open("GET", SensorURL, true);
@@ -328,11 +329,14 @@ function GetMetaOnRecipe(RoomName,UsedScenario)
   srcMainDevice = JSONPath.JSONPath({path: "$.mainDeviceKey", json: UsedScenario});
   srcCapabilities = JSONPath.JSONPath({path: "$.capabilities", json: UsedScenario});
   srcSlides = JSONPath.JSONPath({path: "$.slides", json: UsedScenario});
+  srcWeight = JSONPath.JSONPath({path: "$.slides.*.weight", json: UsedScenario});
+  srcHidden = JSONPath.JSONPath({path: "$.slides.*.hidden", json: UsedScenario});
+
 
 }
 
 function CheckSlideContent(MyObject,Weight,TempShortcut,Destination) 
-{ 
+{                                          // This function determines the fields that belong to an object (capabilty or slide)
   var MySpecificObject;
   var AllParts = MyObject.split('.')
   MySpecificObject = AllParts[2];
@@ -386,9 +390,6 @@ function CheckSlideContent(MyObject,Weight,TempShortcut,Destination)
 
 function GetSlides(RoomName,UsedScenario) 
 {
-  var TheSlides = JSONPath.JSONPath({path: "$.slides.*", json: UsedScenario});
-  var Weight = JSONPath.JSONPath({path: "$.slides.*.weight", json: UsedScenario});
-  var Hidden = JSONPath.JSONPath({path: "$.slides.*.hidden", json: UsedScenario});
   var TempShortcut = {"key":srcMainDevice,"deviceRoomName":UsedScenario.roomName,"deviceRoomKey":UsedScenario.roomKey,"deviceKey":srcMainDevice,"deviceName":MyDevices[srcMainDevice]}
   var Destination = "Slide"
 
@@ -400,7 +401,9 @@ function GetSlides(RoomName,UsedScenario)
  
   // Check if we have slides manually configured... if not, use settings in slidepresets.json to derive slides from capabilities.
   if (!srcSlides.length || srcSlides.length == 1&&Object.keys(srcSlides[0]).length==0 ) 
-    {//MySlides.push({"Name":"Favorites","weight":0,"Widget":[]});
+    {                                                   // we've come here because user has not configured slides; in essence, the scenario does
+                                                        // not give us any info on which slides are used; we will determine (guess) this our selves
+                                                        // based on the capabilities defined in the scenario
     MySlides.push({"Name":"Shortcuts","weight":1,"Widget":[]}); // ALWAYS add shortcuts slide; regardsless if there are any shortcuts defined.
     var foundIt = false;
     for (var i =0;i<srcCapabilities.length;i++)                 // loop over ScenarioCapabilities and find the maindevice's capabilities
@@ -491,10 +494,10 @@ function GetSlides(RoomName,UsedScenario)
       }
   }
   else
-    {var SlideNames = Object.keys(UsedScenario.slides)
+    {var SlideNames = Object.keys(UsedScenario.slides)  
     for (var i =0;i<SlideNames.length;i++) {
-        {if (Hidden[i]==false)                                         // neeo.slide. = 11
-          if (CheckSlideContent(SlideNames[i],Weight[i],TempShortcut,Destination)==-1)
+        {if (srcHidden[i]==false)           // CheckSlideContent does the determination (guess work)                                  
+          if (CheckSlideContent(SlideNames[i],srcWeight[i],TempShortcut,Destination)==-1)
                 ShowError("Unknown slide: " + SlideNames[i])
         }
     }
@@ -529,94 +532,95 @@ function GetContent(Project)
 { // Main loop to gather information from NEEO.
   // First, determine which scenario will be shown as scenario is the main portal to view
   // Then get the slides that will be shown, they also determine the order in which we will display items
-  // Depending ion the slides, we collect information from these sources:
+  // Depending on the slides, we collect information from these sources:
   // Favorites
   // Shortcuts
   //
+  if (Scenario != LastScenario)
+    {LastScenario = Scenario;
+    var UsedScenarios = JSONPath.JSONPath({path: "$.rooms."+RoomName+".scenarios.*", json: Project});
+    if (UsedScenarios.length == 0) {
+      console.log("Oops, room/scenario not found....., did we have a change?")
+      if (Project.ChangeDetected)
+        {ShowError("Scenario cannot be found.... perhaps deleted within NEEO-GUI?")
+        return false;
+        }
+      else
+        {ShowError("Scenario cannot be found.... cannot continue, please return to index of rooms and retry")
+        return false;
+      }
+    }
 
-  var UsedScenarios = JSONPath.JSONPath({path: "$.rooms."+RoomName+".scenarios.*", json: Project});
-  if (UsedScenarios.length == 0) {
-    console.log("Oops, room/scenario not found....., did we have a change?")
-    if (Project.ChangeDetected)
-      {ShowError("Scenario cannot be found.... perhaps deleted within NEEO-GUI?")
-      return false;
+    var MyScenIndex = UsedScenarios.findIndex((myname)=> {return Scenario == myname.name});
+    // if the "scenario name" passed to us isn't found as scenario, try getting the scenario content through the recipe
+    if (MyScenIndex==-1)
+      {var UsedRecipes = JSONPath.JSONPath({path: "$.rooms."+RoomName+".recipes.*", json: Project});
+      var MyRecpIndex = UsedRecipes.findIndex((myname)=> {return Scenario.trim() == myname.name.trim()});
+      // now loop over the steps to find the "Control step"(the step in the recipe where you tell it to show what controls)
+      var Steps = UsedRecipes[MyRecpIndex].steps;
+      var MyStepIndex = Steps.findIndex((step)=> {return "controls"  == step.type});
+      if (MyStepIndex!=-1)
+        { var MyScenarioKey=Steps[MyStepIndex].scenarioKey;
+          MyScenIndex = UsedScenarios.findIndex((ThisScenario)=> {return MyScenarioKey == ThisScenario.key});
+        }
       }
-    else
-      {ShowError("Scenario cannot be found.... cannot continue, please return to index of rooms and retry")
-      return false;
+    UsedScenario = UsedScenarios[MyScenIndex];
     }
-  }
-  var MyScenIndex = UsedScenarios.findIndex((myname)=> {return Scenario == myname.name});
-  // if the "scenario name" passed to us isn';t foun d as scenarion, try getting the scenario content through the recipe
-  if (MyScenIndex==-1)
-    {var UsedRecipes = JSONPath.JSONPath({path: "$.rooms."+RoomName+".recipes.*", json: Project});
-    var MyRecpIndex = UsedRecipes.findIndex((myname)=> {return Scenario.trim() == myname.name.trim()});
-    // now loop over the steps to find the "Control step"(the step in the recipe where you tell it to show what controls)
-    var Steps = UsedRecipes[MyRecpIndex].steps;
-    var MyStepIndex = Steps.findIndex((step)=> {return "controls"  == step.type});
-    if (MyStepIndex!=-1)
-      { var MyScenarioKey=Steps[MyStepIndex].scenarioKey;
-        MyScenIndex = UsedScenarios.findIndex((ThisScenario)=> {return MyScenarioKey == ThisScenario.key});
-      }
-    }
-  UsedScenario = UsedScenarios[MyScenIndex];
 
 
   if (MyProject.ChangeDetected||PerformInitials) { 
     GetRoomNameAndKeys(MyProject);
-    GetDeviceNameAndKeys(MyProject);
+    GetDeviceNameAndKeys(MyProject);             // Get ALL the devices (for all rooms) and put them in MyDevices array (cacheing)
     MyDirectories=[];                            // Will be filled when scanning shortcuts
-    GetMetaOnRecipe(RoomName,UsedScenario);
+    GetMetaOnRecipe(RoomName,UsedScenario);      // Get the meta-data of this scenario
     MySlides = GetSlides(RoomName,UsedScenario); // This info will not be refreshed by default, only when project changes
     MyFavorites=GetFavorites(RoomName,UsedScenario);
     PerformInitials=false;
-    for (var SlideIndex = 0;SlideIndex<MySlides.length;SlideIndex++) 
-      FillSlides(Scenario,MySlides[SlideIndex],"",SlideIndex);
+    FillSlides(); // (Scenario,MySlides[SlideIndex],"",SlideIndex);
 
     let MyIndex = MySlides.findIndex((myname)=> {return "Shortcuts" == myname.Name});
     if (MyIndex>-1||!MySlides.length||(MySlides.length==1&&MySlides[0].Name == "Volume")) 
       GetAllShortcuts(RoomName,UsedScenario);           // Do this one as last, it will automatically call ProcessAllShortcuts
     }
-      return true
 }
  
-function FillSlides(Scenario,Slide,deviceType,SlideIndex) 
-{ document.getElementById("BodyTitle1"+SlideIndex).innerHTML = "Slide "+ MySlides[SlideIndex].Name
-  if (Slide.Name == "Favorites") 
-          document.getElementById("Body1"+SlideIndex).innerHTML =  FormatFavorites(RoomKey,UsedScenario);  
-  else 
-  if (Slide.Name == "Shortcuts")  // will be filled by call to GetAllShortcuts
-    return;  
-  else 
-  if (Slide.Widget.length) 
-    {var   MyShortcutOut = '<div class="BodyRow vertical">'; //= '<div class="BodyRow vertical"><div class="BodyRow-item"> '
+function FillSlides() 
+{
+  for (var SlideIndex = 0;SlideIndex<MySlides.length;SlideIndex++) 
+    {var Slide = MySlides[SlideIndex];
+    document.getElementById("BodyTitle1"+SlideIndex).innerHTML = "Slide "+ Slide.Name
+    if (Slide.Name == "Favorites") 
+            document.getElementById("Body1"+SlideIndex).innerHTML =  FormatFavorites(RoomKey,UsedScenario);  
+    else 
+      if (Slide.Name != "Shortcuts")  // will be filled by call to GetAllShortcuts
+        if (Slide.Widget.length) 
+          {var   MyShortcutOut = '<div class="BodyRow vertical">'; //= '<div class="BodyRow vertical"><div class="BodyRow-item"> '
 
-      for (let j=0;j<Slide.Widget.length;j++)
-      {var Shortcut = Slide.Widget[j];
-        MyShortcutOut+= '<div class="BodyRow-item"> '
-        var FlexHeight=0;
-        for (var i =0;i<Shortcut.BlockcomponentKey.length;i++) {
-            if (Shortcut.Blockname[i].substring(0,1) == "<") {
-                if (Shortcut.Blockname[i] == "<br>")
-                    FlexHeight++;
-                MyShortcutOut+= Shortcut.Blockname[i]
+            for (let j=0;j<Slide.Widget.length;j++)
+            {var Shortcut = Slide.Widget[j];
+              MyShortcutOut+= '<div class="BodyRow-item"> '
+              var FlexHeight=0;
+              for (var i =0;i<Shortcut.BlockcomponentKey.length;i++) {
+                  if (Shortcut.Blockname[i].substring(0,1) == "<") {
+                      if (Shortcut.Blockname[i] == "<br>")
+                          FlexHeight++;
+                      MyShortcutOut+= Shortcut.Blockname[i]
+                      }
+                  else    
+                      MyShortcutOut+=  '<img class="buttons"  src="Icons/'+Shortcut.BlockIcon[i]+'"' +'" onclick="HandleClick('+"'button','"+Shortcut.deviceRoomKey+"','"+Shortcut.deviceKey+"','"+ Shortcut.BlockcomponentKey[i]+"','"+ url+"'"+')">' 
+              }
+              MyShortcutOut += '</div>'
+              if (FlexHeight>2)
+                  {FlexHeight = FlexHeight /3;
+                  for (let NewLines=0;NewLines<FlexHeight;NewLines++)
+                      MyShortcutOut += '<div class="BodyRow horizontal">'
                 }
-            else    
-                MyShortcutOut+=  '<img class="buttons"  src="Icons/'+Shortcut.BlockIcon[i]+'"' +'" onclick="HandleClick('+"'button','"+Shortcut.deviceRoomKey+"','"+Shortcut.deviceKey+"','"+ Shortcut.BlockcomponentKey[i]+"','"+ url+"'"+')">' 
-        }
-        MyShortcutOut += '</div>'
-        if (FlexHeight>2)
-            {FlexHeight = FlexHeight /3;
-            for (let NewLines=0;NewLines<FlexHeight;NewLines++)
-                MyShortcutOut += '<div class="BodyRow horizontal">'
+              MyShortcutOut+= '</div>'
+            }
+            MyShortcutOut+= '</div>'  
+            document.getElementById("Body1"+SlideIndex).innerHTML += MyShortcutOut;
           }
-        MyShortcutOut+= '</div>'
-      }
-      MyShortcutOut+= '</div>'  
-      document.getElementById("Body1"+SlideIndex).innerHTML += MyShortcutOut;
-    }
-//   for (let i=0;i<Slide.Widget.length;i++)
-//      document.getElementById("Body1"+SlideIndex).innerHTML +=  CreateWidget(Slide.Widget[i]);
+        }
   return 0; 
 }
 function DecideOnRefreshOrUpdate(Project) 
@@ -654,7 +658,9 @@ function SetSensorInfo(MyIndex,MyType,MyFunc)
 }
 
 function GetAllShortcuts(Project,UsedScenario) 
-{ var Shortcuts = JSONPath.JSONPath({path: "$.shortcuts.*", json: UsedScenario});
+{                         // Here we will identify & reggister all shortcuts used and see if it's content relies on a sensor
+                          // If it does, the shortuct is earmarked as "requires Snesor value". That value is filled on each refresh 
+  var Shortcuts = JSONPath.JSONPath({path: "$.shortcuts.*", json: UsedScenario});
   Sensorsfound=0;
   var FoundAtLeastOneSensor=0;
   var MyType = "";
@@ -674,15 +680,12 @@ function GetAllShortcuts(Project,UsedScenario)
       AllShortcuts[MyIndex].Icon= Shortcut.componentType+'.jpg"' 
       if (Shortcut.componentType=="textlabel")  { 
         FoundAtLeastOneSensor=SetSensorInfo(MyIndex,"textlabels",OutputATextlabel);
-        //AllShortcuts[MyIndex].BuildOutput = OutputATextlabel; 
       }
       else if (Shortcut.componentType=="slider") { 
         FoundAtLeastOneSensor=SetSensorInfo(MyIndex,"sliders",OutputASlider)
-        Shortcut.BuildOutput = OutputASlider; 
       }
       else if (Shortcut.componentType=="switch") {
         FoundAtLeastOneSensor=SetSensorInfo(MyIndex,"switches",OutputASwitch)
-        Shortcut.BuildOutput = OutputASwitch; 
       }
       else if (Shortcut.componentType=="directory") {  
         AllShortcuts[MyIndex].BuildOutput = OutputADirectory; 
@@ -699,11 +702,9 @@ function GetAllShortcuts(Project,UsedScenario)
     }
   }
 
-  if (FoundAtLeastOneSensor==false)    // If we have no sensors, no need to wait till ProcessAllShortcuts is triggered is from there
-    ProcessContent(Project) // 
-  else
-    HandleNextSensor()
-  return true;  
+  if (FoundAtLeastOneSensor)    // If we have no sensors, no need to wait till ProcessAllShortcuts is triggered is from there
+    HandleNextSensor()                 // Get value for each sensor registered
+  ProcessContent(Project)       // Format HTML with all content gathered
 }
   
 function HandleNextSensor() 
@@ -722,7 +723,8 @@ function OutputAButton(Shortcut,UpdateSensor=false)
 { if (!UpdateSensor) {
       ShortcutOut+= '<div><div class="BodyRow vertical">'          
       ShortcutOut+= '<div class="BodyRow-item"> <a> <img class="buttons"  src="Icons/'+Shortcut.Icon+'"' +'" onclick="HandleClick('+"'button','"+Shortcut.deviceRoomKey+"','"+Shortcut.deviceKey+"','"+ Shortcut.componentKey+"','"+ url+"'"+')"></a> </div>'
-      ShortcutOut+= '<div class="BodyRow-item">'+ Shortcut.componentLabel +'</div>'
+
+      ShortcutOut+= '<div class="vertical-buttontext">'+ Shortcut.componentLabel +' <br> ' + Shortcut.deviceName+'</div>'
       ShortcutOut+= '</div></div>'
       }
   NrItems ++;
@@ -774,7 +776,7 @@ function OutputATextlabel(Shortcut,UpdateSensor=false)
   let ToOccupy = Math.round(MySensorValue.length+5/10)%5;
 
   if (!UpdateSensor) {
-    if (ToOccupy > MySettings.ItemsPerLine - NrItems ) { // too large to fit omn the rest of the line?
+    if (ToOccupy > MySettings.ItemsPerLine - NrItems ) { // too large to fit on the rest of the line?
         ShortcutOut += '</div><div class="BodyRow horizontal">'// start on a new line
         NrItems = 0;
     }

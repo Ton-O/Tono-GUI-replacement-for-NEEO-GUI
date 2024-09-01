@@ -8,9 +8,10 @@ var RoomKey;
 var AllRecipes = [];
 var RoomURL;
 var ProjectLastChange; 
-var TheHeading;
+var TheHeading = "";
 var MySettings = {}
 var MyContent="";
+var PerformInitials = true;
 
 function UpdateNow() 
 {
@@ -39,7 +40,10 @@ function  HandleParams()
 
 function Interpret_Project(MyProject)
 {
-  GetAllRecipes(MyProject);
+  if (MyProject.ChangeDetected || PerformInitials ) 
+    {GetAllRecipes(MyProject);
+    PerformInitials = false;
+    }
   GetActScenario()
   let TheDate = new Date(ProjectLastChange);
   document.getElementById("LastChange").innerHTML = "Last NEEO-change:"+ TheDate.toLocaleString();
@@ -54,7 +58,7 @@ function GetAllRecipes(Project)
   var MyRecipeName = "";
   var MyRecipeType = "";
   var MyRecipeIcon = ""; 
-  var MyRecipeHidden = ""; 
+  var MyRecipeEnabled = ""; 
   var MyScenarioKey = ""; 
   var MyRecipeMainDevice = ""; 
   var EntryToWrite = -1;
@@ -68,11 +72,11 @@ function GetAllRecipes(Project)
     MyRecipeIcon = myrecp[j].icon;
     MyRecipeWeight = myrecp[j].weight;
     MyScenarioKey = myrecp[j].scenarioKey;
-    MyRecipeHidden = myrecp[j].isHiddenRecipe;
+    MyRecipeEnabled = myrecp[j].enabled;
     MyRecipeMainDevice = myrecp[j].mainDeviceType;
     let RecipeIndex = AllRecipes.findIndex((myname)=> {return MyRecipeName == myname.Name});
     if (RecipeIndex<0) { //DeviceName is not yet in array
-      if (MyRecipeHidden!=7) {
+      if (MyRecipeEnabled && MyRecipeType=="launch") {
         if (MyRecipeIcon =="default" )
             MyRecipeIcon="Icons/"+MyRecipeMainDevice+".jpg"
         else
