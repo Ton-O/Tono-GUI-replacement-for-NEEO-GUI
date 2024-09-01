@@ -629,6 +629,7 @@ function DecideOnRefreshOrUpdate(Project)
     Interpret_Project(Project)
   else  
     RefreshShortcuts()
+  GetActScenario(); 
 }
 
 function RefreshShortcuts(Project,UsedScenario) 
