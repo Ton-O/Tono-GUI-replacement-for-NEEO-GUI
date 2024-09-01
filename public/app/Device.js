@@ -582,6 +582,7 @@ function GetContent(Project)
     if (MyIndex>-1||!MySlides.length||(MySlides.length==1&&MySlides[0].Name == "Volume")) 
       GetAllShortcuts(RoomName,UsedScenario);           // Do this one as last, it will automatically call ProcessAllShortcuts
     }
+    return true;
 }
  
 function FillSlides() 
@@ -851,13 +852,14 @@ function LoadCookies(Device)
   if (MySettings.Refresh==undefined || isNaN(MySettings.Refresh))
       MySettings.Refresh=5;
   if (MySettings.ShowActScen==undefined)
-      MySettings.ShowActScen=false;
+      MySettings.ShowActScen=true;
   if (MySettings.ItemsPerLine==undefined || isNaN(MySettings.ItemsPerLine))
       MySettings.ItemsPerLine=10;
 
   TillRefresh = MySettings.Refresh;
   Refresh.value = MySettings.Refresh;
   Items.value = MySettings.ItemsPerLine;
+  UpdateRefreshPanel();
 
 }
 

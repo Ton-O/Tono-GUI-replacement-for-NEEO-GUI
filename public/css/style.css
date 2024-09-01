@@ -306,6 +306,14 @@
   .vertical {
     flex-direction:column;
   }
+  .vertical-buttontext {
+    flex-direction:column;
+    align-items: center;    
+    color: white;
+    justify-content:center;
+    border: 1px solid black;
+
+  }
 
   .vertical-textlabel {
     flex-direction:column;
