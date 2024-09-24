@@ -1,5 +1,5 @@
 This GUI was made because NEEO no longer has an APP in the Apple-store.
-The NEEO-APP is still available in the Google PlayStore, but if your "an Apple-guy", there's no APP anymore for you.
+The NEEO-APP is still available in the Google PlayStore, but if you're "an Apple-guy", there's no APP anymore for you.
 The only alternative for you is the native NEEO-GUI.
 
 But, as far as I know, controlling of your devices is only possible for a small set of controlls: sliders and switches; buttons (apart from the power-button) don't work.
