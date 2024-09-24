@@ -342,16 +342,16 @@ function CheckSlideContent(MyObject,Weight,TempShortcut,Destination)
   MySpecificObject = AllParts[2];
 
   if (MySpecificObject == "favorites") // 11 +9
-    MySlides.push({"Name":"Favorites","weight":Weight,"Widget":[]});
+    MySlides.push({"Name":"Favorites","Weight":Weight,"Widget":[]});
   else
   if (MySpecificObject == "numpad") {    //+ 6
-    MySlides.push({"Name":"Numpad","weight":Weight,"Widget":[]});
+    MySlides.push({"Name":"Numpad","Weight":Weight,"Widget":[]});
     MySlides[MySlides.length-1].Widget[0] = TranslateWidget("neeo.default.button-set.numpad",TempShortcut,Destination);
   }
   else
   if (MySpecificObject =="transports" && AllParts[3] == "record") 
     {var myPart = 0;
-    MySlides.push({"Name":"Transports","weight":Weight,"Widget":[]});
+    MySlides.push({"Name":"Transports","Weight":Weight,"Widget":[]});
     MySlides[MySlides.length-1].Widget[myPart++] =  TranslateWidget("neeo.default.button-set.colors",TempShortcut,Destination)
     MySlides[MySlides.length-1].Widget[myPart++] =  TranslateWidget("neeo.default.button-set.language",TempShortcut,Destination)
     MySlides[MySlides.length-1].Widget[myPart++] =  TranslateWidget("neeo.default.button-set.transport",TempShortcut,Destination)
@@ -364,22 +364,22 @@ function CheckSlideContent(MyObject,Weight,TempShortcut,Destination)
   }
   else
   if (MySpecificObject =="zapper") {   // +6
-    MySlides.push({"Name":"Zapper","weight":Weight,"Widget":[]});
+    MySlides.push({"Name":"Zapper","Weight":Weight,"Widget":[]});
     MySlides[MySlides.length-1].Widget[0] =  TranslateWidget("neeo.default.button-set.zapper",TempShortcut,Destination)
   }
   else
   if (MySpecificObject =="controlpad" /*&& MySpecificObject == "generic"*/) { // + 10
-    MySlides.push({"Name":"Controlpad","weight":Weight,"Widget":[]});
+    MySlides.push({"Name":"Controlpad","Weight":Weight,"Widget":[]});
     MySlides[MySlides.length-1].Widget[0] =  TranslateWidget("neeo.default.button-set.controlpad",TempShortcut,Destination)
   }
   else
   if (MySpecificObject =="apps") { // + 10
-    MySlides.push({"Name":"Apps","weight":Weight,"Widget":[]});
+    MySlides.push({"Name":"Apps","Weight":Weight,"Widget":[]});
     MySlides[MySlides.length-1].Widget[0] =  TranslateWidget("neeo.default.button-set.grid.apps",TempShortcut,Destination)
   }
   else
   if (MySpecificObject == "shortcuts")
-    MySlides.push({"Name":"Shortcuts","weight":Weight,"Widget":[]});
+    MySlides.push({"Name":"Shortcuts","Weight":Weight,"Widget":[]});
   else
     {console.log("Missing slide-layout",MyObject)
       return -1;
@@ -394,7 +394,7 @@ function GetSlides(RoomName,UsedScenario)
   var Destination = "Slide"
 
   if (srcVolumeDeviceKey.length&&srcVolumeDeviceKey!=null) {
-    MySlides.push({"Name":"Volume","weight":-1,"Widget":[]});
+    MySlides.push({"Name":"Volume","Weight":-1,"Widget":[]});
     let VolShortcut = {"key":srcMainDevice,"deviceRoomName":UsedScenario.roomName,"deviceRoomKey":UsedScenario.roomKey,"deviceKey":srcVolumeDeviceKey,"deviceName":MyDevices[srcVolumeDeviceKey]}
     MySlides[0].Widget[0] = TranslateWidget("neeo.default.button-set.volume",VolShortcut,Destination);
   }
@@ -404,7 +404,7 @@ function GetSlides(RoomName,UsedScenario)
     {                                                   // we've come here because user has not configured slides; in essence, the scenario does
                                                         // not give us any info on which slides are used; we will determine (guess) this our selves
                                                         // based on the capabilities defined in the scenario
-    MySlides.push({"Name":"Shortcuts","weight":1,"Widget":[]}); // ALWAYS add shortcuts slide; regardsless if there are any shortcuts defined.
+    MySlides.push({"Name":"Shortcuts","Weight":1,"Widget":[]}); // ALWAYS add shortcuts slide; regardsless if there are any shortcuts defined.
     var foundIt = false;
     for (var i =0;i<srcCapabilities.length;i++)                 // loop over ScenarioCapabilities and find the maindevice's capabilities
       {var DeviceKeypairs = Object.entries(srcCapabilities[i])
