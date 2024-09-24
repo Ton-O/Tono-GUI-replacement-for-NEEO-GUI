@@ -800,7 +800,7 @@ function OutputAWidget(Shortcut,UpdateSensor=false)
 function ProcessAllShortcuts(Project) 
 { ShortcutOut = '<div>'  // '<div class="BodyRow horizontal">' 
   NrItems = MySettings.ItemsPerLine;
-  AllShortcuts.sort((firstEl, secondEl) => { return firstEl.Weight > secondEl.Weight} ) //now sort them according to user-settings
+  AllShortcuts.sort((firstEl, secondEl) => { return firstEl.weight > secondEl.weight} ) //now sort them according to user-settings
   for (var Entry=0;Entry <AllShortcuts.length;Entry++) {
     var Shortcut=AllShortcuts[Entry];
     if (NrItems >= MySettings.ItemsPerLine) {
