@@ -48,6 +48,8 @@ function LoadProject(MyFunc,ChangeDetected) {
             sessionStorage.setItem("NEEO-Project",this.responseText);
             MyProject.ChangeDetected = ChangeDetected;
             ProjectLastChange = MyJSON.lastchange;
+            MyProject.ChangeDetected = true;
+            MyJSON.ChangeDetected = true;
             MyFunc(MyJSON);
         }
     };

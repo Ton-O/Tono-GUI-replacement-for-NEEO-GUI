@@ -105,12 +105,11 @@ function HandleParams()
 function TransmitFavorite(channelNr, RoomKey,deviceKey, url) 
 {  let bb=0;
 //  HandleClick("button",RoomKey,deviceKey,GetKeyByNameFromProject("DIGIT "+ channelNr[0],MyRooms[RoomKey],MyDevices[deviceKey].name,deviceKey),url)
-  if (channelNr.length/*>1*/)
-     for (let ll=/*1*/0;ll<channelNr.length;ll++) 
-           for (var j=0;j<=22000;j++)
-            if (j==22000)
-              HandleClick("button",RoomKey,deviceKey,GetKeyByNameFromProject("DIGIT "+ channelNr[ll],MyRooms[RoomKey],MyDevices[deviceKey].name,deviceKey),url)
-             
+  if (channelNr.length)
+     for (let ll=0;ll<channelNr.length;ll++) 
+           setTimeout(() => {
+            HandleClick("button",RoomKey,deviceKey,GetKeyByNameFromProject("DIGIT "+ channelNr[ll],MyRooms[RoomKey],MyDevices[deviceKey].name,deviceKey),url)
+        }, 500)
   UpdateNow();
 }
 
@@ -177,10 +176,9 @@ function GetDeviceNameAndKeys(Project)
   MyDevices = {};
   var TempDevices  = JSONPath.JSONPath({path: myPath, json: Project});
   for (var i=0;i<TempDevices.length;i++) 
-    {
-      var key = TempDevices[i].key;
-      var name = TempDevices[i].name;
-      MyDevices[key]=name;
+    {var key = TempDevices[i].key;
+    var name = TempDevices[i].name;
+    MyDevices[key]=name;
     }
 }
 
@@ -189,10 +187,9 @@ function GetRoomNameAndKeys(Project)
   MyRooms = {};
   var TempRooms  = JSONPath.JSONPath({path: myPath, json: Project});
   for (var i=0;i<TempRooms.length;i++) 
-    {
-      var key = TempRooms[i].key;
-      var name = TempRooms[i].name;
-      MyRooms[key]=name;
+    {var key = TempRooms[i].key;
+    var name = TempRooms[i].name;
+    MyRooms[key]=name;
     }
 }
 
@@ -392,7 +389,7 @@ function GetSlides(RoomName,UsedScenario)
 {
   var TempShortcut = {"key":srcMainDevice,"deviceRoomName":UsedScenario.roomName,"deviceRoomKey":UsedScenario.roomKey,"deviceKey":srcMainDevice,"deviceName":MyDevices[srcMainDevice]}
   var Destination = "Slide"
-
+  MySlides = [];
   if (srcVolumeDeviceKey.length&&srcVolumeDeviceKey!=null) {
     MySlides.push({"Name":"Volume","Weight":-1,"Widget":[]});
     let VolShortcut = {"key":srcMainDevice,"deviceRoomName":UsedScenario.roomName,"deviceRoomKey":UsedScenario.roomKey,"deviceKey":srcVolumeDeviceKey,"deviceName":MyDevices[srcVolumeDeviceKey]}
@@ -527,7 +524,49 @@ function ProcessContent(Project)
   let TheDate = new Date(ProjectLastChange);
   document.getElementById("LastChange").innerHTML = "Last NEEO-change:"+ TheDate.toLocaleString();
 }
+function GetControlScenario(Project) 
+{// First, we check to see if active scenario has changed; if not, we leave indicating success return
+ // Using the "Used scenario" name passed to us, we search the corresponding recipe (based on the name which is the same for scenario and recipe)
+ // we then search throug the steps in that recipe, looking for the "control" step. That points us to the "control scenario"; this is used further on
+ if (Scenario == LastScenario) 
+    return true;
+
+  LastScenario = Scenario;
+/*  var UsedScenarios = JSONPath.JSONPath({path: "$.rooms."+RoomName+".scenarios.*", json: Project});
+  if (UsedScenarios.length == 0) {
+    console.log("Oops, room/scenario not found....., did we have a change?")
+    if (Project.ChangeDetected)
+      {ShowError("Scenario cannot be found.... perhaps deleted within NEEO-GUI?")
+      return false;
+      }
+    else
+      {ShowError("Scenario cannot be found.... cannot continue, please return to index of rooms and retry")
+      return false;
+    }
+  }
+
+  var MyScenIndex = UsedScenarios.findIndex((myname)=> {return Scenario == myname.name});
+
+  var UsedRecipes = JSONPath.JSONPath({path: "$.rooms."+RoomName+".recipes.*", json: Project});
+  var MyRecpIndex = UsedRecipes.findIndex((myname)=> {return Scenario.trim() == myname.name.trim()});
+  // now loop over the steps to find the "Control step"(the step in the recipe where you tell it to show what controls)
+  var Steps = UsedRecipes[MyRecpIndex].steps;
+  var MyStepIndex = Steps.findIndex((step)=> {return "controls"  == step.type});
+  if (MyStepIndex!=-1)
+    { var MyScenarioKey=Steps[MyStepIndex].scenarioKey;
+      MyScenIndex = UsedScenarios.findIndex((ThisScenario)=> {return MyScenarioKey == ThisScenario.key});
+    }
+    
+  UsedScenario = UsedScenarios[MyScenIndex];
+*/
   
+  var ControlScenario = JSONPath.JSONPath({path: "$.rooms[?(@.name==\""+RoomName+"\")].recipes[?(@.name==\""+Scenario+"\")].steps[?(@.type==\"controls\")]", json: Project})
+  UsedScenario = JSONPath.JSONPath({path: "$.rooms."+RoomName+".scenarios[?(@.key==\""+ControlScenario[0].scenarioKey+"\")]", json: Project})[0];
+  console.log("Scenario received=",Scenario,";determined=",UsedScenario.name)
+  return true;
+}
+
+
 function GetContent(Project) 
 { // Main loop to gather information from NEEO.
   // First, determine which scenario will be shown as scenario is the main portal to view
@@ -536,39 +575,16 @@ function GetContent(Project)
   // Favorites
   // Shortcuts
   //
-  if (Scenario != LastScenario)
-    {LastScenario = Scenario;
-    var UsedScenarios = JSONPath.JSONPath({path: "$.rooms."+RoomName+".scenarios.*", json: Project});
-    if (UsedScenarios.length == 0) {
-      console.log("Oops, room/scenario not found....., did we have a change?")
-      if (Project.ChangeDetected)
-        {ShowError("Scenario cannot be found.... perhaps deleted within NEEO-GUI?")
-        return false;
-        }
-      else
-        {ShowError("Scenario cannot be found.... cannot continue, please return to index of rooms and retry")
-        return false;
-      }
-    }
 
-    var MyScenIndex = UsedScenarios.findIndex((myname)=> {return Scenario == myname.name});
-    // if the "scenario name" passed to us isn't found as scenario, try getting the scenario content through the recipe
-    if (MyScenIndex==-1)
-      {var UsedRecipes = JSONPath.JSONPath({path: "$.rooms."+RoomName+".recipes.*", json: Project});
-      var MyRecpIndex = UsedRecipes.findIndex((myname)=> {return Scenario.trim() == myname.name.trim()});
-      // now loop over the steps to find the "Control step"(the step in the recipe where you tell it to show what controls)
-      var Steps = UsedRecipes[MyRecpIndex].steps;
-      var MyStepIndex = Steps.findIndex((step)=> {return "controls"  == step.type});
-      if (MyStepIndex!=-1)
-        { var MyScenarioKey=Steps[MyStepIndex].scenarioKey;
-          MyScenIndex = UsedScenarios.findIndex((ThisScenario)=> {return MyScenarioKey == ThisScenario.key});
-        }
-      }
-    UsedScenario = UsedScenarios[MyScenIndex];
-    }
-
+  if (!GetControlScenario(Project)) // false returned if scenario cannot be found
+    return false
 
   if (MyProject.ChangeDetected||PerformInitials) { 
+    for (let i = 0;i<MySlides.length;i++)
+      {document.getElementById("BodyTitle1"+i).innerHTML = "";
+      document.getElementById("Body1"+i).innerHTML = "";
+      }
+    MySlides = [];
     GetRoomNameAndKeys(MyProject);
     GetDeviceNameAndKeys(MyProject);             // Get ALL the devices (for all rooms) and put them in MyDevices array (cacheing)
     MyDirectories=[];                            // Will be filled when scanning shortcuts
