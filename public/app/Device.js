@@ -530,36 +530,8 @@ function GetControlScenario(Project)
  // we then search throug the steps in that recipe, looking for the "control" step. That points us to the "control scenario"; this is used further on
  if (Scenario == LastScenario) 
     return true;
-
   LastScenario = Scenario;
-/*  var UsedScenarios = JSONPath.JSONPath({path: "$.rooms."+RoomName+".scenarios.*", json: Project});
-  if (UsedScenarios.length == 0) {
-    console.log("Oops, room/scenario not found....., did we have a change?")
-    if (Project.ChangeDetected)
-      {ShowError("Scenario cannot be found.... perhaps deleted within NEEO-GUI?")
-      return false;
-      }
-    else
-      {ShowError("Scenario cannot be found.... cannot continue, please return to index of rooms and retry")
-      return false;
-    }
-  }
 
-  var MyScenIndex = UsedScenarios.findIndex((myname)=> {return Scenario == myname.name});
-
-  var UsedRecipes = JSONPath.JSONPath({path: "$.rooms."+RoomName+".recipes.*", json: Project});
-  var MyRecpIndex = UsedRecipes.findIndex((myname)=> {return Scenario.trim() == myname.name.trim()});
-  // now loop over the steps to find the "Control step"(the step in the recipe where you tell it to show what controls)
-  var Steps = UsedRecipes[MyRecpIndex].steps;
-  var MyStepIndex = Steps.findIndex((step)=> {return "controls"  == step.type});
-  if (MyStepIndex!=-1)
-    { var MyScenarioKey=Steps[MyStepIndex].scenarioKey;
-      MyScenIndex = UsedScenarios.findIndex((ThisScenario)=> {return MyScenarioKey == ThisScenario.key});
-    }
-    
-  UsedScenario = UsedScenarios[MyScenIndex];
-*/
-  
   var ControlScenario = JSONPath.JSONPath({path: "$.rooms[?(@.name==\""+RoomName+"\")].recipes[?(@.name==\""+Scenario+"\")].steps[?(@.type==\"controls\")]", json: Project})
   UsedScenario = JSONPath.JSONPath({path: "$.rooms."+RoomName+".scenarios[?(@.key==\""+ControlScenario[0].scenarioKey+"\")]", json: Project})[0];
   console.log("Scenario received=",Scenario,";determined=",UsedScenario.name)
