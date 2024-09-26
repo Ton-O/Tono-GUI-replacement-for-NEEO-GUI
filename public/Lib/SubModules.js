@@ -135,12 +135,12 @@ function PutBrowserSettings(CurrPage,MySettings) {
 
 function ShowActHandler(CurrPage) {
     MySettings.ShowActScen=!MySettings.ShowActScen;
-    UpdateRefreshPanel();
+    UpdateActSceneSwitch();
     UpdateNow();
     PutBrowserSettings(CurrPage,JSON.stringify(MySettings))
 }
 
-function UpdateRefreshPanel() {
+function UpdateActSceneSwitch() {
     document.getElementById("act99").innerHTML = (MySettings.ShowActScen)?"Do not show active scenarios":"Show active scenarios";
 }
 function NavigateUp(CurrPage,) {

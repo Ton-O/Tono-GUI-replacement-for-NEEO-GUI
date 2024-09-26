@@ -184,12 +184,13 @@ function LoadCookies(Device)
   TillRefresh = MySettings.Refresh;
   Refresh.value = MySettings.Refresh;
   Items.value = MySettings.ItemsPerLine;
+  UpdateActSceneSwitch();
 
 }
 
 function  Init() {
   HandleParams();
-  LoadCookies("ShowDevice");  // Get user setingfs for this page 
+  LoadCookies("ShowDevice");  // Get user setings for this page 
   TheHeading =  'NEEO - Show full device ';
   }
 

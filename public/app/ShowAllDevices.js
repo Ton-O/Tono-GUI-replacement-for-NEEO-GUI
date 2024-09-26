@@ -130,7 +130,7 @@ function LoadCookies(Device)
   TillRefresh = MySettings.Refresh;
   Refresh.value = MySettings.Refresh;
   Items.value = MySettings.ItemsPerLine;
-  UpdateRefreshPanel();
+  UpdateActSceneSwitch();
 
 }
 
