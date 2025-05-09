@@ -1,0 +1,17 @@
+services:
+  node:
+    build:
+      context: ./node/
+      dockerfile: Dockerfile
+    container_name: Node
+    hostname: Node
+    image: nodetono:release
+    working_dir: /app
+    environment:
+      - NODE_ENV=production
+    volumes:
+      - /media/local/node/app:/app
+      - /media/Containers/node/node/app:/etc/orgapp
+    ports:
+      - 80:8080
+    command: /app/start.sh
