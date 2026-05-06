@@ -10,8 +10,8 @@ services:
     restart: unless-stopped
     environment:
       - NODE_ENV=production
-    volumes:
-      - /media/local/Node/app:/app
+    #volumes: uncomment this line and the next to use your own modules; no need, but possible
+    #  - /media/local/Node/app:/app
     ports:
       - 80:8080
     command: node  /app/StartServer.js
