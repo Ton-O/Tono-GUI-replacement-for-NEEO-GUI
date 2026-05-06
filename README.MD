@@ -20,7 +20,7 @@ Installation is rather simple and can be done in (at least) two ways:
    Thats it.
 	
 This module needs to know the address of your Brain to work; but thats simple: just add it tot the url like this:
-	http://<URL where you stored GUI>:5000/Index.html?url=<brain url>
+	http://fill here <URL where you stored GUI>:5000/Index.html?url=<brain url>
 
 NOTE: I am NOT an HTML-guy, so be happy with this release or make it better yourself....THEN SHARE YOUR IMPROVEMENTS!
 	
