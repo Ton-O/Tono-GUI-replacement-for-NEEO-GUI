@@ -7,11 +7,11 @@ services:
     hostname: Node
     image: nodetono:release
     working_dir: /app
+    restart: unless-stopped
     environment:
       - NODE_ENV=production
     volumes:
-      - /media/local/node/app:/app
-      - /media/Containers/node/node/app:/etc/orgapp
+      - /media/local/Node/app:/app
     ports:
       - 80:8080
-    command: /app/start.sh
+    command: node  /app/StartServer.js
