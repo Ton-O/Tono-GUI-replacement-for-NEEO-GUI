@@ -9,9 +9,9 @@ services:
     working_dir: /app
     environment:
       - NODE_ENV=production
-    volumes:
-      - /media/local/node/app:/app
-      - /media/Containers/node/node/app:/etc/orgapp
+    #volumes: #uncomment if you wnt to run with a local copy of the htlm and javascript
+    #  - /media/local/node/app:/app
+    #  - /media/Containers/node/node/app:/etc/orgapp
     ports:
       - 80:8080
     command: /app/start.sh
