@@ -9,10 +9,12 @@ It does NOT contain any possibility to change NEEO-settings as the native NEEO-G
 Use at your own risk, but this solution has proven to be handy... for me.
 
 Installation is rather simple and can be done in (at least) two ways:
-1) Local on you PC/laptop
-2) On your Brain
+1) As a docker container. 
+2) Local on you PC/laptop
+3) On your Brain
 
-1) Is simple: copy all files (or download the repository as zip-fle and expand it) to the preferred location on your PC/laptop. 
+1) Is very simple: just install the image as a container (using the docker-compose.yml added in this repo).
+2) Is simple: copy all files (or download the repository as zip-fle and expand it) to the preferred location on your PC/laptop. 
 	Navigate to the location, go into the public directory and open Index.html into your favorite browser. Thats it!
 2) Takes more work but gives a bit more the feel of an actual GUI that comes from NEEO. Download all files to a location on your Brain; if you don;t know how, please don;t b other and use the previous solution.
    Navigate to the directory on your Brain (the top-level, where StartServer.js resides) and run node StartServer.js. 
