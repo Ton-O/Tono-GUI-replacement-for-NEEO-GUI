@@ -10,8 +10,9 @@ services:
     restart: unless-stopped
     environment:
       - NODE_ENV=production
-    #volumes: uncomment this line and the next to use your own modules; no need, but possible
-    #  - /media/local/Node/app:/app
+    #volumes: #uncomment if you wnt to run with a local copy of the htlm and javascript
+    #  - /media/local/node/app:/app
+    #  - /media/Containers/node/node/app:/etc/orgapp
     ports:
       - 80:8080
     command: node  /app/StartServer.js
