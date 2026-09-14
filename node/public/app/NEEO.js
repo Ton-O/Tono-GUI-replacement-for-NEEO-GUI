@@ -76,7 +76,7 @@ function LoadCookies(Device)
   Refresh.value = MySettings.Refresh;
   Items.value = MySettings.ItemsPerLine;
   BrainIP.value = MySettings.BrainIP;
-  UpdateRefreshPanel();
+  UpdateActSceneSwitch();
 }
 
 function MakeURLFromBrainIP(MyBrainIP) 
